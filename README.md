@@ -1,12 +1,12 @@
-# 🎯 AI-Based Career Path Recommendation System
+# Career Path Recommendation System
 
-## 📖 Overview
+## Overview
 
 This project aims to solve a major real-world problem: millions of students have no clarity about what career aligns with their interests, skills, strengths, and long-term goals. Students often choose careers based on random advice, outdated information, or by copying someone else — which leads to dissatisfaction, frustration, and unemployment.
 
-The **AI-based Career Path Recommendation System** is built to guide students toward the right profession using data-driven insights, machine learning, and NLP analysis of real job market data. It provides personalized career recommendations, required skills, learning roadmap, job trends, and matching job titles.
+The **Career Path Recommendation System** is built to guide students toward the right profession using data-driven insights, machine learning, and NLP analysis of real job market data. It provides personalized career recommendations, required skills, learning roadmap, job trends, and matching job titles.
 
-## 🔍 Core Objectives
+## Core Objectives
 
 1.  **Analyze Student Profile**:
     *   Interests & Skills
@@ -22,7 +22,7 @@ The **AI-based Career Path Recommendation System** is built to guide students to
     *   Provide a step-by-step learning roadmap.
     *   Suggest courses, skills to learn, and future opportunities.
 
-## 📦 Datasets
+## Datasets
 
 The system utilizes three key datasets:
 
@@ -30,7 +30,7 @@ The system utilizes three key datasets:
 2.  **Career Path Dataset**: Contains career categories, required skills, typical responsibilities, growth potential, salary range, and industry type.
 3.  **Job Description Dataset**: A large dataset (approx. 1.6M rows) containing job titles, roles, descriptions, skills, experience, location, and salary ranges. This helps map careers to current market demands.
 
-## 🔧 Technologies & Techniques
+## Technologies & Techniques
 
 ### NLP (Natural Language Processing)
 *   **Text Cleaning**: Lowercasing, removing special characters and stop words.
@@ -43,17 +43,17 @@ The system utilizes three key datasets:
 *   **Clustering**: Grouping similar careers using K-Means to recommend based on clusters.
 *   **Hybrid Model**: Combining skill similarity, interest matching, personality fit, and JD similarity for a robust recommendation score.
 
-## 🧠 Model Output
+## Model Output
 
 The system provides:
-*   🏆 Top 5 Career Recommendations
-*   ✅ Match Score
-*   📉 Missing Skills Analysis
-*   🗺️ Suggested Learning Roadmap
-*   📚 Recommended Courses
-*   💼 Real Job Titles & Salary Insights
+*   Top 5 Career Recommendations
+*   Match Score
+*   Missing Skills Analysis
+*   Suggested Learning Roadmap
+*   Recommended Courses
+*   Real Job Titles & Salary Insights
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 proj-career-reco/
@@ -70,7 +70,7 @@ proj-career-reco/
 └── README.md           # Project documentation
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 1.  **Clone the repository**:
     ```bash
