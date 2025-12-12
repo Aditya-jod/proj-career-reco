@@ -17,7 +17,6 @@ def clean_text(text):
     
     text = text.lower()
 
-    # Keep only letters, numbers and spaces
     text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
 
     tokens = text.split()
