@@ -1,3 +1,22 @@
-# Configuration file for the project.
-# TODO: Define file paths (data, models).
-# TODO: Define model parameters (max_features, top_k, etc.).
+paths:
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  external_data: "data/external"
+  models: "models"
+
+files:
+  student_data: "student_data.csv"
+  career_data: "career_path_data.csv"
+  job_data: "job_descriptions.csv"
+
+nlp:
+  max_features: 5000
+  embedding_dim: 384 # Standard for all-MiniLM-L6-v2
+
+model:
+  top_k: 5
+  n_clusters: 10
+  weights:
+    skill_match: 0.5
+    interest_match: 0.3
+    cluster_similarity: 0.2
