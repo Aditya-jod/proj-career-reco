@@ -55,3 +55,16 @@ def load_raw_data(config):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return None
+    
+if __name__ == "__main__":
+    # 1. Load Config
+    config = load_config()
+    
+    if config:
+        # 2. Load Data
+        data = load_raw_data(config)
+        
+        # 3. Check what we got
+        if data:
+            print("\nSuccess! Data loaded.")
+            print(f"Keys available: {list(data.keys())}")
