@@ -35,13 +35,12 @@ The system utilizes three key datasets:
 ### NLP (Natural Language Processing)
 *   **Text Cleaning**: Lowercasing, removing special characters and stop words.
 *   **Lemmatization**: Reducing words to their base form.
-*   **Skill Extraction**: Identifying key skills from text.
-*   **Vectorization**: TF-IDF and Embeddings (Sentence Transformers/Word2Vec/SpaCy).
+*   **Vectorization**: TF-IDF (Term Frequency-Inverse Document Frequency).
 
 ### Machine Learning
 *   **Content-Based Filtering**: Matching student profiles with similar job descriptions using Cosine Similarity.
-*   **Clustering**: Grouping similar careers using K-Means to recommend based on clusters.
-*   **Hybrid Model**: Combining skill similarity, interest matching, personality fit, and JD similarity for a robust recommendation score.
+*   **Clustering**: Grouping similar careers using K-Means.
+*   **Hybrid Model**: Combining skill similarity, interest matching, and cluster similarity.
 
 ## Model Output
 
