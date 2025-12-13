@@ -1,26 +1,37 @@
 # Career Path Recommendation System
 
-## Overview
+## Goal
+Build an intelligent system that recommends suitable career paths to students based on their academic performance, interests, hobbies, and skills.
 
-This project aims to solve a major real-world problem: millions of students have no clarity about what career aligns with their interests, skills, strengths, and long-term goals. Students often choose careers based on random advice, outdated information, or by copying someone else — which leads to dissatisfaction, frustration, and unemployment.
+## Scope
+*   **Focus**: Career guidance starting from Class 12 to professional careers.
+*   **Recommendations**: Career domains (e.g., Data Science, Mechanical Engineering, UI/UX, Finance, Healthcare).
+*   **Suggestions**: Suitable job roles and required skills.
+*   **Alignment**: Recommendations aligned with current job market trends.
 
-The **Career Path Recommendation System** is built to guide students toward the right profession using data-driven insights, machine learning, and NLP analysis of real job market data. It provides personalized career recommendations, required skills, learning roadmap, job trends, and matching job titles.
+## Data Used
+1.  **Student/Career Path Dataset**:
+    *   Academic performance (GPA)
+    *   Skills (coding, communication, problem-solving, teamwork, etc.)
+    *   Interests, extracurricular activities, projects, internships
+2.  **Career Path Dataset**:
+    *   Career domains and required skills
+3.  **Job Description Dataset**:
+    *   Used **ONLY** to understand market-demanded skills and trends.
+    *   **NOT** for resume parsing or hiring decisions.
 
-## Core Objectives
+## Methods
+*   **Content-based recommendation**: Matching student profiles to careers.
+*   **Skill and interest matching**: Core logic for relevance.
+*   **Text Understanding**: TF-IDF or embeddings.
+*   **Matching**: Cosine similarity.
+*   **Clustering (Optional)**: K-Means for grouping similar careers.
 
-1.  **Analyze Student Profile**:
-    *   Interests & Skills
-    *   Academic background
-    *   Personality traits
-    *   Goals
-2.  **Analyze Job Descriptions**:
-    *   Extract required skills, experience level, and responsibilities.
-    *   Identify role categories.
-3.  **Intelligent Matching**:
-    *   Match students with the most suitable career paths using ML.
-4.  **Guidance**:
-    *   Provide a step-by-step learning roadmap.
-    *   Suggest courses, skills to learn, and future opportunities.
+## Output
+*   Top recommended career paths
+*   Relevant job roles
+*   Skill gap analysis
+*   Learning roadmap for the chosen career
 
 ## Datasets
 
