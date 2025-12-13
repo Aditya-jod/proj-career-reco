@@ -17,8 +17,7 @@ Build an intelligent system that recommends suitable career paths to students ba
 2.  **Career Path Dataset**:
     *   Career domains and required skills
 3.  **Job Description Dataset**:
-    *   Used **ONLY** to understand market-demanded skills and trends.
-    *   **NOT** for resume parsing or hiring decisions.
+    *   Used to understand market-demanded skills and trends.
 
 ## Methods
 *   **Content-based recommendation**: Matching student profiles to careers.
