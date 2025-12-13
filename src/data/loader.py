@@ -29,6 +29,7 @@ def load_raw_data(config):
         
         # 1. Career Path Data
         datasets['career_path'] = pd.read_csv(datasets_config['career_path'])
+        datasets['career_path'].columns = datasets['career_path'].columns.str.strip()
         print(f"Loaded Career Path Data: {datasets['career_path'].shape}")
 
         # 2. Student/Recommendation Data 
