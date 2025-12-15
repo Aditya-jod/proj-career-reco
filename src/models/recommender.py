@@ -18,7 +18,6 @@ class CareerRecommender:
          results = []
          for idx in top_indices:
               score = similarities[0][idx]
-              # Return the actual index in the dataframe
               original_idx = self.career_df.index[idx]
               results.append({"index": original_idx, "score": score})
 

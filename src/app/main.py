@@ -2,7 +2,6 @@ import sys
 import os
 import pandas as pd
 
-# Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from src.data.loader import load_config, load_raw_data
@@ -32,7 +31,6 @@ def main():
     job_df = job_df.sample(n=sample_size, random_state=42)
     
     # --- COMBINE COLUMNS ---
-    # We create a rich profile for each job
     cols_to_combine = ['Job Title', 'skills', 'Job Description', 'Responsibilities']
     
     print(f"Combining columns {cols_to_combine}...")
@@ -46,11 +44,10 @@ def main():
     
     # 4. Feature Engineering
     print("\n--- Step 4: Building Model ---")
-    builder = FeatureBuilder(max_features=5000) # Limit vocabulary to top 5000 words
+    builder = FeatureBuilder(max_features=5000)
     
     # 5. Initialize Recommender
     print("\n--- Step 5: Initializing Recommender System ---")
-    # We use 'Content' for matching, but we will display 'Job Title'
     recommender = CareerRecommender(builder, job_df, vector_column='Content')
     
     # 6. Interactive Loop
@@ -69,8 +66,6 @@ def main():
         cleaned_input = clean_text(user_input)
         print(f"\nProcessing: '{cleaned_input}'...")
         
-        # Get recommendations
-               # ... inside the loop in main.py ...
         recommendations = recommender.recommend(cleaned_input, top_k=5)
         
         print("\nTop 5 Recommended Jobs for you:")
@@ -79,7 +74,6 @@ def main():
             idx = row['index']
             score = row['score']
             
-            # Look up details using the index
             job_title = job_df.loc[idx, 'Job Title']
             company = job_df.loc[idx, 'Company']
             location = job_df.loc[idx, 'location']
