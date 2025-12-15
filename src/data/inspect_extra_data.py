@@ -11,7 +11,6 @@ def inspect_data():
     config = load_config()
     datasets_config = config['datasets']
     
-    # List of datasets we haven't looked at closely yet
     targets = ['student_reco', 'indian_colleges', 'world_universities']
     
     for key in targets:
