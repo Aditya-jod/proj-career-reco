@@ -50,7 +50,6 @@ class UniversityRecommender:
             name_mask = country_df['name'].str.contains(pattern, case=False, na=False)
             results = country_df[name_mask][['name', 'country', 'web_pages']].head(10)
             
-            # If fewer than 3 specific results found, append general top universities
             if len(results) < 3:
                 print(f"   (Note: Few specific matches found for '{career_field}'. Adding general top universities.)")
                 general_unis = country_df[['name', 'country', 'web_pages']].head(5)

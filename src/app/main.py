@@ -15,7 +15,6 @@ def get_user_scores():
     """Helper to get scores from user input"""
     print("\n--- Please enter your scores (0-100) ---")
     scores = {}
-    # Default values 
     defaults = {
         'Mathematics_Score': 0, 'Science_Score': 0, 'Language_Arts_Score': 0,
         'Social_Studies_Score': 0, 'Logical_Reasoning': 5, 'Creativity': 5,
@@ -91,7 +90,6 @@ def main():
         cleaned_query = clean_text(query)
         
         print(f"Searching for jobs matching: '{cleaned_query}'...")
-        # Fetch more results (20) so we can filter out duplicates and still show top 5
         recommendations = job_recommender.recommend(cleaned_query, top_k=20)
         
         print("\nTop 5 Recommended Job Roles:")
