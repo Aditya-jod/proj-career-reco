@@ -1,6 +1,6 @@
 import pandas as pd
  
-class UniversityRecomender:
+class UniversityRecommender:
     def __init__(self, indian_df, world_df):
         self.indian_df = indian_df
         self.world_df = world_df
@@ -32,13 +32,30 @@ class UniversityRecomender:
             results.columns = ['University/College', 'State', 'City/District']
 
         else:
+            country_map = {
+                'usa': 'United States',
+                'us': 'United States',
+                'uk': 'United Kingdom',
+                'uae': 'United Arab Emirates'
+            }
+            country_preference = country_map.get(country_preference.lower(), country_preference)
+
             country_mask = self.world_df['country'].str.contains(country_preference, case=False, na=False)
             country_df = self.world_df[country_mask]
+            
+            if country_df.empty:
+                return pd.DataFrame()
 
             pattern = '|'.join(keywords)
             name_mask = country_df['name'].str.contains(pattern, case=False, na=False)
-
             results = country_df[name_mask][['name', 'country', 'web_pages']].head(10)
+            
+            # If fewer than 3 specific results found, append general top universities
+            if len(results) < 3:
+                print(f"   (Note: Few specific matches found for '{career_field}'. Adding general top universities.)")
+                general_unis = country_df[['name', 'country', 'web_pages']].head(5)
+                results = pd.concat([results, general_unis]).drop_duplicates(subset=['name']).head(10)
+            
             results.columns = ['University/College', 'Country', 'Website']
             
         return results
