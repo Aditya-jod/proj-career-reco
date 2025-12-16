@@ -60,15 +60,11 @@ def main():
             cleaned_df = datasets['student_reco_2']
             augmented_df = augment_cleaned_data(cleaned_df)
             
-            # Ensure columns match before concatenation
-            # We only need the feature columns and the target
             common_cols = [col for col in augmented_df.columns if col in main_df.columns]
             
             if len(common_cols) > 0:
                 print(f"Augmenting training data with {len(augmented_df)} new samples...")
-                # Concatenate
                 combined_df = pd.concat([main_df, augmented_df], axis=0, ignore_index=True)
-                # Fill NaNs if any (though augmentation should handle it)
                 combined_df = combined_df.fillna(0)
                 
                 print(f"Total training samples: {len(combined_df)}")
