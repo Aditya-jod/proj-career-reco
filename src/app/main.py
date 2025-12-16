@@ -111,7 +111,12 @@ def main():
         print(f"\nNow, let's find specific job roles in {predicted_field}.")
         skills = input("Enter your specific skills/interests (e.g., python, drawing, management): ")
         
-        query = f"{predicted_field} {skills}"
+        # FIX: If user provides specific skills, prioritize them over the predicted field
+        if skills.strip():
+            query = skills
+        else:
+            query = predicted_field
+            
         cleaned_query = clean_text(query)
         
         print(f"Searching for jobs matching: '{cleaned_query}'...")
