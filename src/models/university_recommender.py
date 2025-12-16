@@ -28,7 +28,14 @@ class UniversityRecommender:
             pattern = '|'.join(keywords)
 
             mask = self.indian_df['College Name'].str.contains(pattern, case=False, na=False)
-            results = self.indian_df[mask][['College Name', 'State', 'District']].head(10)
+            matches = self.indian_df[mask]
+            
+            # Randomize results to show diversity across states
+            if len(matches) > 10:
+                results = matches.sample(n=10, random_state=None)[['College Name', 'State', 'District']]
+            else:
+                results = matches[['College Name', 'State', 'District']]
+                
             results.columns = ['University/College', 'State', 'City/District']
 
         else:
@@ -37,6 +44,7 @@ class UniversityRecommender:
                 'us': 'United States',
                 'uk': 'United Kingdom',
                 'uae': 'United Arab Emirates'
+                ''
             }
             country_preference = country_map.get(country_preference.lower(), country_preference)
 

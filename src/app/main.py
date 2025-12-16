@@ -13,17 +13,30 @@ from src.models.university_recommender import UniversityRecommender
 
 def get_user_scores():
     """Helper to get scores from user input"""
-    print("\n--- Please enter your scores (0-100) ---")
+    print("\n--- Please enter your scores ---")
     scores = {}
-    defaults = {
-        'Mathematics_Score': 0, 'Science_Score': 0, 'Language_Arts_Score': 0,
-        'Social_Studies_Score': 0, 'Logical_Reasoning': 5, 'Creativity': 5,
-        'Communication': 5, 'Leadership': 5, 'Social_Skills': 5
-    }
     
-    for field in defaults:
-        val = input(f"{field} (default {defaults[field]}): ")
-        scores[field] = float(val) if val.strip() else defaults[field]
+    # Group 1: Academic Scores (0-100)
+    academic_cols = ['Mathematics_Score', 'Science_Score', 'Language_Arts_Score', 'Social_Studies_Score']
+    print("\n[Academic Scores (0-100)]")
+    for field in academic_cols:
+        val = input(f"{field} (default 50): ")
+        scores[field] = float(val) if val.strip() else 50.0
+        
+    # Group 2: Soft Skills (1-10)
+    soft_skills = ['Logical_Reasoning', 'Creativity', 'Communication', 'Leadership', 'Social_Skills']
+    print("\n[Soft Skills (1-10)]")
+    for field in soft_skills:
+        val = input(f"{field} (default 5): ")
+        val = float(val) if val.strip() else 5.0
+        
+        # Auto-correct if user enters 0-100 scale for soft skills
+        if val > 10:
+            print(f"   -> Assuming {val} means {val/10} on a 1-10 scale.")
+            val = val / 10
+            
+        scores[field] = val
+        
     return scores
 
 def main():
@@ -48,7 +61,6 @@ def main():
     # 4. Initialize Job Recommender 
     job_df = datasets['job_descriptions'].sample(n=10000, random_state=42)
     
-    # --- FIX: Remove Duplicates to ensure variety in recommendations ---
     job_df = job_df.drop_duplicates(subset=['Job Title'])
     
     cols_to_combine = ['Job Title', 'skills', 'Job Description', 'Responsibilities']
@@ -69,8 +81,21 @@ def main():
         user_scores = get_user_scores()
         
         # B. Predict Broad Career Field
-        predicted_field, confidence = predictor.predict(user_scores)
+        top_predictions = predictor.predict_top_k(user_scores, k=3)
+        predicted_field, confidence = top_predictions[0]
+        
         print(f"\n>>> AI PREDICTION: You are best suited for: {predicted_field} (Confidence: {confidence:.2%}) <<<")
+        
+        # If confidence is low, show alternatives
+        if confidence < 0.50:
+            print("\n   (Note: The AI is not 100% sure. Here are other strong matches:)")
+            for i, (label, prob) in enumerate(top_predictions[1:], 1):
+                print(f"   {i}. {label} ({prob:.2%})")
+            
+            choice = input("\n   Do you want to stick with the top prediction? (y/n): ").lower()
+            if choice == 'n':
+                print("   Please type the career field you prefer from the list above:")
+                predicted_field = input("   > ").strip()
         
         # C. Recommend Universities
         location = input("\nWhere do you want to study? (e.g., India, USA, UK): ")

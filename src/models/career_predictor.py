@@ -70,6 +70,28 @@ class CareerPredictor:
         confidence = np.max(probs)
 
         return pred_label, confidence
+
+    def predict_top_k(self, user_input, k=3):
+        """Returns the top k predictions with their probabilities."""
+        if not self.is_trianed:
+            if os.path.exists(self.model_path):
+                self._load_model()
+            else: 
+                raise Exception("Model is not trained yet.")
+            
+        input_df = pd.DataFrame([user_input]) 
+        input_df = input_df[self.feature_columns]
+
+        probs = self.model.predict_proba(input_df)[0]
+        top_k_indices = np.argsort(probs)[-k:][::-1]
+        
+        results = []
+        for idx in top_k_indices:
+            label = self.label_encoder.inverse_transform([idx])[0]
+            prob = probs[idx]
+            results.append((label, prob))
+            
+        return results
     
     def _save_model(self):
         os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
