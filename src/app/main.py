@@ -6,6 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 from src.data.loader import load_config, load_raw_data
 from src.data.preprocessing import clean_text
+from src.data.augmentation import augment_cleaned_data
 from src.features.build_features import FeatureBuilder
 from src.models.recommender import CareerRecommender
 from src.models.career_predictor import CareerPredictor
@@ -49,8 +50,44 @@ def main():
     print("   PHASE 1: TRAINING AI MODELS")
     print("="*50)
     
-    predictor = CareerPredictor()
-    predictor.train(datasets['student_reco'])
+    # --- DATA MERGING START ---
+    # Merge the original student_reco with the new cleaned student_reco_2
+    print("Merging datasets...")
+    main_df = datasets['student_reco']
+    
+    if 'student_reco_2' in datasets and datasets['student_reco_2'] is not None:
+        try:
+            cleaned_df = datasets['student_reco_2']
+            augmented_df = augment_cleaned_data(cleaned_df)
+            
+            # Ensure columns match before concatenation
+            # We only need the feature columns and the target
+            common_cols = [col for col in augmented_df.columns if col in main_df.columns]
+            
+            if len(common_cols) > 0:
+                print(f"Augmenting training data with {len(augmented_df)} new samples...")
+                # Concatenate
+                combined_df = pd.concat([main_df, augmented_df], axis=0, ignore_index=True)
+                # Fill NaNs if any (though augmentation should handle it)
+                combined_df = combined_df.fillna(0)
+                
+                print(f"Total training samples: {len(combined_df)}")
+                predictor = CareerPredictor()
+                predictor.train(combined_df)
+            else:
+                print("Warning: No common columns found between datasets. Using original dataset only.")
+                predictor = CareerPredictor()
+                predictor.train(main_df)
+                
+        except Exception as e:
+            print(f"Error during data merging: {e}")
+            print("Falling back to original dataset.")
+            predictor = CareerPredictor()
+            predictor.train(main_df)
+    else:
+        predictor = CareerPredictor()
+        predictor.train(main_df)
+    # --- DATA MERGING END ---
     
     # 3. Initialize University Recommender
     uni_recommender = UniversityRecommender(

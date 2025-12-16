@@ -34,10 +34,18 @@ def load_raw_data(config):
 
         # 2. Student/Recommendation Data 
         datasets['student_reco'] = pd.read_csv(datasets_config['student_reco'])
+        # Clean column names (strip whitespace)
+        datasets['student_reco'].columns = datasets['student_reco'].columns.str.strip()
         print(f"Loaded Student Reco Data: {datasets['student_reco'].shape}")
         
         # Load the second student dataset
-        datasets['student_reco_2'] = pd.read_csv(datasets_config['student_reco_2'])
+        try:
+            datasets['student_reco_2'] = pd.read_csv(datasets_config['student_reco_2'])
+            datasets['student_reco_2'].columns = datasets['student_reco_2'].columns.str.strip()
+            print(f"Loaded Student Reco Data 2: {datasets['student_reco_2'].shape}")
+        except Exception as e:
+            print(f"Warning: Could not load student_reco_2: {e}")
+            datasets['student_reco_2'] = None
 
         # 3. Job Descriptions
         datasets['job_descriptions'] = pd.read_csv(datasets_config['job_descriptions'])
