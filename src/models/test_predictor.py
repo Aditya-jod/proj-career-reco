@@ -2,14 +2,12 @@ import sys
 import os
 import pandas as pd
 
-# Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from src.data.loader import load_config, load_raw_data
 from src.models.career_predictor import CareerPredictor
 
 def test_predictor():
-    # 1. Load Data
     config = load_config()
     datasets = load_raw_data(config)
     student_df = datasets['student_reco']
