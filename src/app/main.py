@@ -110,8 +110,7 @@ def main():
         # D. Recommend Specific Jobs
         print(f"\nNow, let's find specific job roles in {predicted_field}.")
         skills = input("Enter your specific skills/interests (e.g., python, drawing, management): ")
-        
-        # FIX: If user provides specific skills, prioritize them over the predicted field
+    
         if skills.strip():
             query = skills
         else:
