@@ -1,83 +1,75 @@
-# Career Path Recommendation System
+# AI Career Path Recommender System
 
-## Goal
-Build an intelligent system that recommends suitable career paths to students based on their academic performance, interests, hobbies, and skills.
+A hybrid AI recommendation engine that helps students discover their ideal career path, find relevant universities, and explore specific job roles based on their academic scores, soft skills, and personal interests.
 
-## Scope
-*   **Focus**: Career guidance starting from Class 12 to professional careers.
-*   **Recommendations**: Career domains (e.g., Data Science, Mechanical Engineering, UI/UX, Finance, Healthcare).
-*   **Suggestions**: Suitable job roles and required skills.
-*   **Alignment**: Recommendations aligned with current job market trends.
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
+![Scikit-Learn](https://img.shields.io/badge/AI-Scikit--Learn-orange)
+![Pandas](https://img.shields.io/badge/Data-Pandas-green)
 
-## Data Used
-1.  **Student/Career Path Dataset**:
-    *   Academic performance (GPA)
-    *   Skills (coding, communication, problem-solving, teamwork, etc.)
-    *   Interests, extracurricular activities, projects, internships
-2.  **Career Path Dataset**:
-    *   Career domains and required skills
-3.  **Job Description Dataset**:
-    *   Used to understand market-demanded skills and trends.
+## Key Features
 
-## Methods
-*   **Content-based recommendation**: Matching student profiles to careers.
-*   **Skill and interest matching**: Core logic for relevance.
-*   **Text Understanding**: TF-IDF or embeddings.
-*   **Matching**: Cosine similarity.
-*   **Clustering (Optional)**: K-Means for grouping similar careers.
+### 1. Intelligent Career Prediction (Machine Learning)
+*   **Algorithm:** Random Forest Classifier.
+*   **Input:** Academic scores (Math, Science, etc.) and Soft Skills (Leadership, Creativity, etc.).
+*   **Logic:** Analyzes patterns from 5,000+ student profiles to predict the most suitable **Broad Career Field** (e.g., STEM, Healthcare, Business).
+*   **Smart Feature:** Includes an **"Alternative Options"** system. If the AI is less than 50% confident, it presents the top 3 choices and lets the user decide.
 
-## Output
-*   Top recommended career paths
-*   Relevant job roles
-*   Skill gap analysis
-*   Learning roadmap for the chosen career
+### 2. University Recommendation (Rule-Based Filtering)
+*   **Logic:** Maps the predicted career field to specific university courses.
+*   **Smart Mapping:** Handles specific job titles (e.g., "Field Engineer" -> "STEM") to ensure relevant results.
+*   **Database:** Searches through a database of Indian and International universities.
+*   **Diversity:** Uses randomized sampling to show a diverse mix of colleges across different states/regions, avoiding bias towards a single location.
 
-## Datasets
+### 3. Job Role Recommendation (NLP & Content-Based Filtering)
+*   **Algorithm:** TF-IDF Vectorization + Cosine Similarity.
+*   **Dataset:** Trained on a sample of **30,000 real-world job descriptions**.
+*   **Logic:** Takes user-defined interests (e.g., "Python, Drawing") and finds the most mathematically similar job titles from the database.
+*   **Feature:** Supports specific skill queries (e.g., searching "Lawyer" will override a "STEM" prediction to show legal jobs).
 
-The system utilizes three key datasets:
+---
 
-1.  **Student Dataset**: Contains skills, interests, career goals, academic scores, and personality traits.
-2.  **Career Path Dataset**: Contains career categories, required skills, typical responsibilities, growth potential, salary range, and industry type.
-3.  **Job Description Dataset**: A large dataset (approx. 1.6M rows) containing job titles, roles, descriptions, skills, experience, location, and salary ranges. This helps map careers to current market demands.
+## Technical Architecture
 
-## Technologies & Techniques
+The system uses a **Hybrid Recommendation Approach**:
 
-### NLP (Natural Language Processing)
-*   **Text Cleaning**: Lowercasing, removing special characters and stop words.
-*   **Lemmatization**: Reducing words to their base form.
-*   **Vectorization**: TF-IDF (Term Frequency-Inverse Document Frequency).
+1.  **Phase 1 (Classification):**
+    *   *Input:* Numerical Scores.
+    *   *Model:* Random Forest.
+    *   *Output:* Broad Category (e.g., "Healthcare").
 
-### Machine Learning
-*   **Content-Based Filtering**: Matching student profiles with similar job descriptions using Cosine Similarity.
-*   **Clustering**: Grouping similar careers using K-Means.
-*   **Hybrid Model**: Combining skill similarity, interest matching, and cluster similarity.
+2.  **Phase 2 (Rule-Based Mapping):**
+    *   *Input:* Broad Category + Location.
+    *   *Logic:* Keyword Matching & Dictionary Mapping.
+    *   *Output:* List of Universities.
 
-## Model Output
+3.  **Phase 3 (Content-Based Filtering):**
+    *   *Input:* User Keywords (Skills/Interests).
+    *   *Model:* TF-IDF (Term Frequency-Inverse Document Frequency).
+    *   *Output:* Specific Job Titles (e.g., "Neurosurgeon", "Python Developer").
 
-The system provides:
-*   Top 5 Career Recommendations
-*   Match Score
-*   Missing Skills Analysis
-*   Suggested Learning Roadmap
-*   Recommended Courses
-*   Real Job Titles & Salary Insights
+---
 
 ## Project Structure
 
-```
+```text
 proj-career-reco/
-├── config/             # Configuration files
-├── data/               # Raw and processed datasets
-├── notebooks/          # Jupyter notebooks for EDA and prototyping
-├── src/                # Source code
-│   ├── app/            # Main application logic
-│   ├── data/           # Data loading and preprocessing
-│   ├── features/       # Feature engineering (NLP, Embeddings)
-│   ├── models/         # ML models (Recommender, Clustering)
-│   └── utils/          # Helper functions
-├── requirements.txt    # Project dependencies
-└── README.md           # Project documentation
-```
+├── data/                   # Raw datasets (CSV files)
+├── models/                 # Saved AI models (.pkl)
+├── notebooks/              # Jupyter notebooks for data cleaning & exploration
+├── src/
+│   ├── app/
+│   │   └── main.py         # Main application entry point
+│   ├── data/
+│   │   ├── augmentation.py # Data augmentation logic
+│   │   └── loader.py       # Data loading utilities
+│   ├── features/
+│   │   └── build_features.py # TF-IDF vectorization logic
+│   └── models/
+│       ├── career_predictor.py      # Random Forest Logic
+│       ├── recommender.py           # Job Search Logic (TF-IDF)
+│       └── university_recommender.py # University Search Logic
+├── requirements.txt        # Python dependencies
+└── README.md               # Project documentation
 
 ## Getting Started
 
