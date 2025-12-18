@@ -1,4 +1,4 @@
-# AI Career Path Recommender System
+# Career Path Recommender System
 
 A hybrid AI recommendation engine that helps students discover their ideal career path, find relevant universities, and explore specific job roles based on their academic scores, soft skills, and personal interests.
 
@@ -70,6 +70,7 @@ proj-career-reco/
 │       └── university_recommender.py # University Search Logic
 ├── requirements.txt        # Python dependencies
 └── README.md               # Project documentation
+```
 
 ## Getting Started
 
