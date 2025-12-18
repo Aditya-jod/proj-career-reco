@@ -51,39 +51,13 @@ def main():
     print("="*50)
     
     # --- DATA MERGING START ---
-    # Merge the original student_reco with the new cleaned student_reco_2
-    print("Merging datasets...")
+    # NOTE: Merging disabled to keep model size small (GitHub limit < 100MB)
+    print("Training on primary dataset (Broad Career Fields)...")
     main_df = datasets['student_reco']
+    predictor = CareerPredictor()
+    predictor.train(main_df, verbose=False)
     
-    if 'student_reco_2' in datasets and datasets['student_reco_2'] is not None:
-        try:
-            cleaned_df = datasets['student_reco_2']
-            augmented_df = augment_cleaned_data(cleaned_df)
-            
-            common_cols = [col for col in augmented_df.columns if col in main_df.columns]
-            
-            if len(common_cols) > 0:
-                print(f"Augmenting training data with {len(augmented_df)} new samples...")
-                combined_df = pd.concat([main_df, augmented_df], axis=0, ignore_index=True)
-                combined_df = combined_df.fillna(0)
-                
-                print(f"Total training samples: {len(combined_df)}")
-                predictor = CareerPredictor()
-                predictor.train(combined_df)
-            else:
-                print("Warning: No common columns found between datasets. Using original dataset only.")
-                predictor = CareerPredictor()
-                predictor.train(main_df)
-                
-        except Exception as e:
-            print(f"Error during data merging: {e}")
-            print("Falling back to original dataset.")
-            predictor = CareerPredictor()
-            predictor.train(main_df)
-    else:
-        predictor = CareerPredictor()
-        predictor.train(main_df)
-    # --- DATA MERGING END ---
+    print("Career Predictor Model trained successfully.")
     
     # 3. Initialize University Recommender
     uni_recommender = UniversityRecommender(
@@ -92,7 +66,7 @@ def main():
     )
     
     # 4. Initialize Job Recommender 
-    job_df = datasets['job_descriptions'].sample(n=10000, random_state=42)
+    job_df = datasets['job_descriptions'].sample(n=30000, random_state=42)
     
     job_df = job_df.drop_duplicates(subset=['Job Title'])
     

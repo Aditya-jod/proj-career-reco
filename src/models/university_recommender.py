@@ -30,7 +30,6 @@ class UniversityRecommender:
             mask = self.indian_df['College Name'].str.contains(pattern, case=False, na=False)
             matches = self.indian_df[mask]
             
-            # Randomize results to show diversity across states
             if len(matches) > 10:
                 results = matches.sample(n=10, random_state=None)[['College Name', 'State', 'District']]
             else:

@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+import re
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -26,30 +27,43 @@ class CareerPredictor:
             'Social_Skills'
         ] 
 
-    def train(self, df):
-        print("\n" + "="*40)
-        print("   TRAINING CAREER PREDICTOR MODEL")
-        print("="*40)
+    def _clean_label(self, label):
+        """Cleans the target label by removing brackets, quotes, and extra spaces."""
+        if isinstance(label, str):
+            clean = re.sub(r"[\[\]\"']", "", label)
+            return clean.strip()
+        return label
 
-        print("Preparing training data...")
+    def train(self, df, verbose=True):
+        if verbose:
+            print("\n" + "="*40)
+            print("   TRAINING CAREER PREDICTOR MODEL")
+            print("="*40)
+            print("Preparing training data...")
+
         X = df[self.feature_columns]
-        y = df['Primary_Career_Recommendation']
+        y = df['Primary_Career_Recommendation'].apply(self._clean_label)
+        
+        if verbose:
+            print(f"Unique classes found: {y.unique()}")
 
         y_encoded = self.label_encoder.fit_transform(y)
         # Data split (80% Training, 20% Testing)
         X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
 
-        print("Fitting Random Forest Classifier...")
+        if verbose:
+            print("Fitting Random Forest Classifier...")
         self.model.fit(X_train, y_train)
         self.is_trianed = True
 
-        print("\n--- Model Evaluation Results ---")
-        accuracy = self.model.score(X_test, y_test)
-        print(f"Accuracy: {accuracy:.2%}")
+        if verbose:
+            print("\n--- Model Evaluation Results ---")
+            accuracy = self.model.score(X_test, y_test)
+            print(f"Accuracy: {accuracy:.2%}")
 
-        y_pred = self.model.predict(X_test)
-        print("\nClassification Report:")
-        print(classification_report(y_test, y_pred, target_names=self.label_encoder.classes_))
+            y_pred = self.model.predict(X_test)
+            print("\nClassification Report:")
+            print(classification_report(y_test, y_pred, target_names=self.label_encoder.classes_))
 
         self._save_model()
 
