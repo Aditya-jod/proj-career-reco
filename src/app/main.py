@@ -41,7 +41,6 @@ def get_user_scores():
     return scores
 
 def main():
-    # 1. Load Configuration & Data
     config = load_config()
     datasets = load_raw_data(config)
     
