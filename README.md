@@ -1,6 +1,6 @@
 # Career Path Recommender System
 
-A hybrid AI recommendation engine that helps students discover their ideal career path, find relevant universities, and explore specific job roles based on their academic scores, soft skills, and personal interests.
+A AI recommendation engine that helps students discover their ideal career path, find relevant universities, and explore specific job roles based on their academic scores, soft skills, and personal interests. 
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![Scikit-Learn](https://img.shields.io/badge/AI-Scikit--Learn-orange)
@@ -65,8 +65,8 @@ proj-career-reco/
 │   ├── features/
 │   │   └── build_features.py # TF-IDF vectorization logic
 │   └── models/
-│       ├── career_predictor.py      # Random Forest Logic
-│       ├── recommender.py           # Job Search Logic (TF-IDF)
+│       ├── career_predictor.py       # Random Forest Logic
+│       ├── recommender.py            # Job Search Logic (TF-IDF)
 │       └── university_recommender.py # University Search Logic
 ├── requirements.txt        # Python dependencies
 └── README.md               # Project documentation
