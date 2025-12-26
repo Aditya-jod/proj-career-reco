@@ -81,7 +81,6 @@ def main():
     print("="*50)
     
     while True:
-        print("\n--- New Session ---")
         # 1. Collect all user inputs up front
         user_scores = get_user_scores()
         skills = input("\nEnter your specific skills/interests (e.g., python, drawing, management): ")
@@ -116,7 +115,6 @@ def main():
             if choice == 'n':
                 print("   Please type the career field you prefer from the list above:")
                 predicted_field = input("   > ").strip()
-                # Recompute universities and jobs for new field
                 unis = uni_recommender.recommend(predicted_field, location)
                 if not skills.strip():
                     query = predicted_field
