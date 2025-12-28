@@ -24,7 +24,6 @@ def load_raw_data(config):
     datasets = {}
     
     try:
-        # Load datasets using absolute paths from config
         print("Loading datasets...")
         
         # 1. Career Path Data
@@ -34,7 +33,6 @@ def load_raw_data(config):
 
         # 2. Student/Recommendation Data 
         datasets['student_reco'] = pd.read_csv(datasets_config['student_reco'])
-        # Clean column names (strip whitespace)
         datasets['student_reco'].columns = datasets['student_reco'].columns.str.strip()
         print(f"Loaded Student Reco Data: {datasets['student_reco'].shape}")
         
@@ -66,14 +64,10 @@ def load_raw_data(config):
         return None
     
 if __name__ == "__main__":
-    # 1. Load Config
     config = load_config()
     
     if config:
-        # 2. Load Data
         data = load_raw_data(config)
-        
-        # 3. Check what we got
         if data:
             print("\nSuccess! Data loaded.")
             print(f"Keys available: {list(data.keys())}")
