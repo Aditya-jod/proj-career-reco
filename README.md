@@ -5,6 +5,14 @@ A AI recommendation engine that helps students discover their ideal career path,
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![Scikit-Learn](https://img.shields.io/badge/AI-Scikit--Learn-orange)
 ![Pandas](https://img.shields.io/badge/Data-Pandas-green)
+![NLTK](https://img.shields.io/badge/NLP-NLTK-yellowgreen)
+![SpaCy](https://img.shields.io/badge/NLP-SpaCy-lightgrey)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-teal)
+![React](https://img.shields.io/badge/Frontend-React-blue)
+![Jupyter](https://img.shields.io/badge/Notebook-Jupyter-orange)
+![NumPy](https://img.shields.io/badge/Math-NumPy-blueviolet)
+![Git](https://img.shields.io/badge/Version%20Control-Git-red)
+![Render](https://img.shields.io/badge/Deployment-Render.com-brightgreen)
 
 ## Key Features
 
