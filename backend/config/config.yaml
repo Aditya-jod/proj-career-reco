@@ -1,0 +1,23 @@
+paths:
+  processed_data: "data/processed"
+  models: "models"
+
+datasets:
+  career_path: "D:/Data Science advance projects/Career Path Recommender/Dataset/career path data/career_path_in_all_field.csv"
+  student_reco: "D:/Data Science advance projects/Career Path Recommender/Dataset/career recommendation dataset/career_recommendation_dataset.csv"
+  student_reco_2: "D:/Data Science advance projects/Career Path Recommender/Dataset/career recommendation dataset/cleaned_career_recommender.csv"
+  indian_colleges: "D:/Data Science advance projects/Career Path Recommender/Dataset/data of all colleges in india/College.csv"
+  world_universities: "D:/Data Science advance projects/Career Path Recommender/Dataset/world universities data/list_of_universities.csv"
+  job_descriptions: "D:/Data Science advance projects/Career Path Recommender/Dataset/job dataset/job_descriptions.csv"
+
+nlp:
+  max_features: 5000
+  embedding_dim: 384
+
+model:
+  top_k: 5
+  n_clusters: 10
+  weights:
+    skill_match: 0.5
+    interest_match: 0.3
+    cluster_similarity: 0.2
