@@ -53,23 +53,27 @@ The system uses a **Hybrid Recommendation Approach**:
 
 ```text
 proj-career-reco/
-├── data/                   # Raw datasets (CSV files)
-├── models/                 # Saved AI models (.pkl)
-├── notebooks/              # Jupyter notebooks for data cleaning & exploration
-├── src/
-│   ├── app/
-│   │   └── main.py         # Main application entry point
-│   ├── data/
-│   │   ├── augmentation.py # Data augmentation logic
-│   │   └── loader.py       # Data loading utilities
-│   ├── features/
-│   │   └── build_features.py # TF-IDF vectorization logic
-│   └── models/
-│       ├── career_predictor.py       # Random Forest Logic
-│       ├── recommender.py            # Job Search Logic (TF-IDF)
-│       └── university_recommender.py # University Search Logic
-├── requirements.txt        # Python dependencies
-└── README.md               # Project documentation
+├── backend/
+│   ├── src/
+│   │   ├── app/
+│   │   │   └── main.py               # Main application entry point
+│   │   ├── data/
+│   │   │   ├── augmentation.py       # Data augmentation logic
+│   │   │   └── loader.py             # Data loading utilities
+│   │   ├── features/
+│   │   │   └── build_features.py     # TF-IDF vectorization logic
+│   │   └── models/
+│   │       ├── career_predictor.py   # Random Forest Logic
+│   │       ├── recommender.py        # Job Search Logic (TF-IDF)
+│   │       └── university_recommender.py # University Search Logic
+│   ├── data/                         # Raw datasets (CSV files)
+│   ├── models/                       # Saved AI models (.pkl)
+│   ├── notebooks/                    # Jupyter notebooks for data cleaning & exploration
+│   ├── requirements.txt              # Python dependencies
+│   └── README.md                     # Backend documentation (optional)
+├── frontend/
+│   └── .gitkeep                      # Placeholder for frontend code (React, Vue, etc.)
+└── README.md                         # Project documentation (root)
 ```
 
 ## Getting Started
