@@ -130,14 +130,6 @@ The backend ML workflow consists of several key stages, each designed to ensure 
 	python -c "import nltk; nltk.download('stopwords'); nltk.download('wordnet')"
 	```
 
-4. **Run the API server:**
-	```bash
-	uvicorn src.app.main:app --reload
-	```
-
-5. **API Documentation:**
-	- Visit [http://localhost:8000/docs](http://localhost:8000/docs) for interactive Swagger UI.
-
 ## API Endpoints (Examples)
 
 - `POST /predict-career` – Predicts broad career field from user data
