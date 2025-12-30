@@ -90,6 +90,27 @@ def main():
         top_predictions = predictor.predict_top_k(user_scores, k=3)
         predicted_field, confidence = top_predictions[0]
 
+        # --- Rule-based override for user interests ---
+        interest_keywords = {
+            'STEM': ['python', 'data', 'analysis', 'engineer', 'developer', 'technology', 'software', 'programming', 'ai', 'ml', 'machine learning', 'statistics', 'math'],
+            'Business_Finance': ['finance', 'business', 'analyst', 'accounting', 'management', 'marketing', 'sales', 'economics'],
+            'Healthcare': ['doctor', 'medicine', 'nurse', 'health', 'medical', 'pharmacy', 'biotech', 'hospital'],
+            'Arts_Media': ['art', 'design', 'media', 'music', 'drawing', 'painting', 'film', 'communication'],
+            'Government_Law': ['law', 'legal', 'political', 'public', 'administration', 'government'],
+            'Education': ['teaching', 'teacher', 'education', 'pedagogy', 'tutor'],
+            'Trades_Manufacturing': ['industrial', 'vocational', 'manufacturing', 'trade', 'mechanic', 'electrician'],
+            'Social_Services': ['social', 'welfare', 'community', 'humanities', 'ngo', 'counselor']
+        }
+        user_interest_field = None
+        if skills.strip():
+            for field, keywords in interest_keywords.items():
+                if any(kw in skills.lower() for kw in keywords):
+                    user_interest_field = field
+                    break
+        # If model confidence is low and user interests match a field, override
+        if confidence < 0.50 and user_interest_field:
+            predicted_field = user_interest_field
+
         # 3. Recommend Specific Jobs (using interests or predicted field)
         if skills.strip():
             query = skills
@@ -108,7 +129,7 @@ def main():
 
         print(f"\nScores & Skills suggest: {predicted_field} (Confidence: {confidence:.2%})")
         if confidence < 0.50:
-            print("   (Note: The AI is not 100% sure. Here are other strong matches:)")
+            print("   (Note: The AI is not 100% sure. Here are other strong matches:")
             for i, (label, prob) in enumerate(top_predictions[1:], 1):
                 print(f"   {i}. {label} ({prob:.2%})")
             choice = input("\n   Do you want to stick with the top prediction? (y/n): ").lower()
