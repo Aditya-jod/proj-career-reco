@@ -22,22 +22,45 @@ This backend powers the AI-driven recommendation engine for the Career Path Reco
 
 ```text
 backend/
+├── config/
+│   └── config.yaml               # Configuration file
+├── data/
+│   ├── raw/                      # Raw datasets (CSV files)
+│   └── processed/                # Processed datasets
+├── models/
+│   ├── career_predictor.pkl      # Saved Random Forest model
+│   └── saved_job_recommender/    # Saved job recommender models
+├── notebooks/
+│   ├── 01_data_cleaning.ipynb    # Data cleaning notebook
+│   ├── 01_eda.ipynb              # Exploratory Data Analysis
+│   └── 02_data_exploration.ipynb # Data exploration notebook
 ├── src/
 │   ├── app/
 │   │   └── main.py               # FastAPI app entry point
 │   ├── data/
 │   │   ├── augmentation.py       # Data augmentation logic
-│   │   └── loader.py             # Data loading utilities
+│   │   ├── loader.py             # Data loading utilities
+│   │   ├── preprocessing.py      # Data preprocessing
+│   │   └── __init__.py
 │   ├── features/
-│   │   └── build_features.py     # TF-IDF vectorization logic
-│   └── models/
-│       ├── career_predictor.py   # Random Forest logic
-│       ├── recommender.py        # Job search logic (TF-IDF)
-│       └── university_recommender.py # University search logic
-├── data/                         # Raw datasets (CSV files)
-├── models/                       # Saved AI models (.pkl)
-├── notebooks/                    # Jupyter notebooks for data cleaning & exploration
+│   │   ├── build_features.py     # TF-IDF vectorization logic
+│   │   ├── nlp_utils.py          # NLP helper functions
+│   │   └── __init__.py
+│   ├── models/
+│   │   ├── career_predictor.py   # Random Forest logic
+│   │   ├── recommender.py        # Job search logic (TF-IDF)
+│   │   ├── university_recommender.py # University search logic
+│   │   ├── clustering.py         # Clustering logic
+│   │   └── __init__.py
+│   ├── scripts/                  # Utility scripts (empty)
+│   ├── utils/
+│   │   └── __init__.py           # Utility functions
+│   └── __init__.py
+├── tests/
+│   ├── test_full_pipeline.py     # End-to-end pipeline tests
+│   └── test_predictor.py         # Career predictor tests
 ├── requirements.txt              # Python dependencies
+├── .gitignore                    # Git ignore file
 └── README.md                     # Backend documentation
 ```
 
