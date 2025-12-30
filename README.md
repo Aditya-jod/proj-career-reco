@@ -106,7 +106,7 @@ proj-career-reco/
 │   └── .gitkeep                          # Placeholder for frontend code (React, Vue, etc.)
 └── README.md                             # Project documentation (root)
 ```
-```
+
 
 ## Getting Started
 
