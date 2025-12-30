@@ -16,26 +16,44 @@ class UniversityRecommender:
             'Social_Services': ['Social', 'Welfare', 'Humanities', 'Community']
         }
 
+
     def recommend(self, career_field, country_preference='India'):
         keywords = self.field_keywords.get(career_field, [])
-
         if not keywords:
             return pd.DataFrame()
-        
         results = pd.DataFrame()
 
-        if country_preference.lower() == 'india':
-            pattern = '|'.join(keywords)
+        # Normalize location input
+        location = country_preference.strip().lower()
 
+        # For India, allow filtering by state or city/district as well
+        if location == 'india' or location in self.indian_df['State'].str.lower().unique() or location in self.indian_df['District'].str.lower().unique():
+            pattern = '|'.join(keywords)
             mask = self.indian_df['College Name'].str.contains(pattern, case=False, na=False)
             matches = self.indian_df[mask]
-            
-            if len(matches) > 10:
-                results = matches.sample(n=10, random_state=None)[['College Name', 'State', 'District']]
+
+            # Further filter by state or district if location is not 'india'
+            if location != 'india':
+                state_mask = self.indian_df['State'].str.lower() == location
+                district_mask = self.indian_df['District'].str.lower() == location
+                matches = matches[state_mask | district_mask]
+
+            # Prefer ranking if available, else prioritize top institutes, else fallback to random
+            if 'Rank' in matches.columns and not matches.empty:
+                results = matches.sort_values('Rank').head(10)[['College Name', 'State', 'District', 'Rank']]
             else:
-                results = matches[['College Name', 'State', 'District']]
-                
-            results.columns = ['University/College', 'State', 'City/District']
+                priority_keywords = ['IIT', 'NIT', 'IIM', 'BITS', 'AIIMS']
+                priority_mask = matches['College Name'].str.contains('|'.join(priority_keywords), case=False, na=False)
+                priority_matches = matches[priority_mask]
+                other_matches = matches[~priority_mask]
+                results = pd.concat([priority_matches, other_matches])
+                if len(results) > 10:
+                    results = results.head(10)[['College Name', 'State', 'District']]
+                else:
+                    results = results[['College Name', 'State', 'District']]
+            if not results.empty:
+                results.columns = ['University/College', 'State', 'City/District']
+            return results
 
         else:
             country_map = {
