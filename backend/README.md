@@ -64,6 +64,50 @@ backend/
 └── README.md                     # Backend documentation
 ```
 
+## Machine Learning Pipeline Workflow
+
+The backend ML workflow consists of several key stages, each designed to ensure robust, interpretable, and accurate recommendations:
+
+### 1. Data Collection & Exploration
+- Gathered 5,000+ student profiles with academic scores, soft skills, and interests.
+- Performed EDA (Exploratory Data Analysis) to understand distributions, spot outliers, and identify important features.
+
+### 2. Data Preprocessing & Feature Engineering
+- Cleaned data (handled missing values, removed duplicates, standardized formats).
+- Engineered new features (e.g., composite skill scores, encoded categorical variables).
+- Normalized/standardized numerical features for model compatibility.
+- For job role recommendations, applied NLP preprocessing (tokenization, stopword removal, lemmatization).
+
+### 3. Model Selection: Why Random Forest?
+- Random Forest Classifier chosen for career field prediction because:
+	- Handles both numerical and categorical data well.
+	- Robust to overfitting (ensemble averaging).
+	- Provides feature importance for interpretability.
+	- Captures non-linear relationships and complex interactions.
+	- Outperformed other models in initial experiments.
+
+### 4. Model Training & Evaluation
+- Split data into training and validation sets.
+- Trained Random Forest on engineered features.
+- Tuned hyperparameters (number of trees, max depth, etc.).
+- Evaluated using accuracy, precision, recall, and F1-score.
+- If model confidence < 50%, system returns top 3 career fields for user choice.
+
+### 5. Content-Based Filtering for Job Roles
+- Used TF-IDF vectorization to convert job descriptions and user interests into vectors.
+- Applied cosine similarity to match user input to relevant job titles.
+- Leveraged NLTK and SpaCy for advanced text processing.
+
+### 6. Rule-Based Mapping for University Recommendations
+- Mapped predicted career fields to university courses using dictionaries and keyword matching.
+- Ensured recommendations are diverse and relevant.
+
+### 7. Model Serialization & Deployment
+- Saved trained models using Joblib for fast loading in production.
+- Exposed prediction endpoints via FastAPI for frontend integration.
+
+---
+
 ## Setup & Usage
 
 1. **Create and activate a virtual environment:**
