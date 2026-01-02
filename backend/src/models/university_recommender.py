@@ -1,85 +1,106 @@
+import os
+import numpy as np
 import pandas as pd
- 
+from typing import Optional
+from sklearn.metrics.pairwise import cosine_similarity
+
+
 class UniversityRecommender:
-    def __init__(self, indian_df, world_df):
-        self.indian_df = indian_df
-        self.world_df = world_df
+    def __init__(
+        self,
+        feature_builder,
+        indian_df: pd.DataFrame,
+        world_df: pd.DataFrame,
+        embedding_path: str = "models/university_embeddings.npy"
+    ):
+        self.feature_builder = feature_builder
+        self.embedding_path = embedding_path
 
-        self.field_keywords = {
-            'STEM': ['Technology', 'Engineering', 'Science', 'Polytechnic', 'Technical', 'Institute of Technology'],
-            'Healthcare': ['Medical', 'Health', 'Nursing', 'Pharmacy', 'Medicine', 'Hospital'],
-            'Business_Finance': ['Business', 'Management', 'Commerce', 'Economics', 'Finance'],
-            'Arts_Media': ['Arts', 'Design', 'Media', 'Music', 'Fine Arts', 'Communication'],
-            'Government_Law': ['Law', 'Legal', 'Political', 'Public', 'Administration'],
-            'Education': ['Education', 'Teacher', 'Pedagogy', 'Normal'],
-            'Trades_Manufacturing': ['Industrial', 'Vocational', 'Manufacturing', 'Trade'],
-            'Social_Services': ['Social', 'Welfare', 'Humanities', 'Community']
-        }
+        self.indian_df = indian_df.copy()
+        self.world_df = world_df.copy()
 
+        self._prepare_data()
+        self._load_or_build_embeddings()
 
-    def recommend(self, career_field, country_preference='India'):
-        keywords = self.field_keywords.get(career_field, [])
-        if not keywords:
-            return pd.DataFrame()
-        results = pd.DataFrame()
+    def _prepare_data(self):
+        self.indian_df["search_text"] = (
+            self.indian_df["College Name"].fillna("") + " " +
+            self.indian_df["University Name"].fillna("") + " " +
+            self.indian_df["Specialised in"].fillna("") + " " +
+            self.indian_df["College Type"].fillna("") + " " +
+            self.indian_df["University Type"].fillna("") + " " +
+            self.indian_df["Management"].fillna("")
+        )
 
-        # Normalize location input
-        location = country_preference.strip().lower()
+        self.indian_df["country"] = "India"
 
-        # For India, allow filtering by state or city/district as well
-        if location == 'india' or location in self.indian_df['State'].str.lower().unique() or location in self.indian_df['District'].str.lower().unique():
-            pattern = '|'.join(keywords)
-            mask = self.indian_df['College Name'].str.contains(pattern, case=False, na=False)
-            matches = self.indian_df[mask]
+        indian_clean = self.indian_df[[
+            "search_text",
+            "College Name",
+            "State",
+            "District",
+            "country",
+            "Website"
+        ]].rename(columns={"College Name": "name"})
 
-            # Further filter by state or district if location is not 'india'
-            if location != 'india':
-                state_mask = self.indian_df['State'].str.lower() == location
-                district_mask = self.indian_df['District'].str.lower() == location
-                matches = matches[state_mask | district_mask]
+        self.world_df["search_text"] = (
+            self.world_df["name"].fillna("") + " " +
+            self.world_df["country"].fillna("")
+        )
 
-            # Prefer ranking if available, else prioritize top institutes, else fallback to random
-            if 'Rank' in matches.columns and not matches.empty:
-                results = matches.sort_values('Rank').head(10)[['College Name', 'State', 'District', 'Rank']]
-            else:
-                priority_keywords = ['IIT', 'NIT', 'IIM', 'BITS', 'AIIMS']
-                priority_mask = matches['College Name'].str.contains('|'.join(priority_keywords), case=False, na=False)
-                priority_matches = matches[priority_mask]
-                other_matches = matches[~priority_mask]
-                results = pd.concat([priority_matches, other_matches])
-                if len(results) > 10:
-                    results = results.head(10)[['College Name', 'State', 'District']]
-                else:
-                    results = results[['College Name', 'State', 'District']]
-            if not results.empty:
-                results.columns = ['University/College', 'State', 'City/District']
-            return results
+        world_clean = self.world_df[[
+            "search_text",
+            "name",
+            "country",
+            "web_pages"
+        ]].rename(columns={"web_pages": "Website"})
 
+        self.unified_df = pd.concat([indian_clean, world_clean], ignore_index=True)
+        self.unified_df["Website"] = self.unified_df["Website"].astype(str)
+
+    def _load_or_build_embeddings(self):
+        if os.path.exists(self.embedding_path):
+            print("⚡ Loading cached university embeddings...")
+            self.embedding_matrix = np.load(self.embedding_path)
         else:
-            country_map = {
-                'usa': 'United States',
-                'us': 'United States',
-                'uk': 'United Kingdom',
-                'uae': 'United Arab Emirates'
-                ''
-            }
-            country_preference = country_map.get(country_preference.lower(), country_preference)
+            print("🚀 Computing university embeddings (one-time)...")
+            self.embedding_matrix = self.feature_builder.encode(
+                self.unified_df["search_text"].tolist()
+            )
+            os.makedirs(os.path.dirname(self.embedding_path), exist_ok=True)
+            np.save(self.embedding_path, self.embedding_matrix)
+            print("✅ Embeddings cached")
 
-            country_mask = self.world_df['country'].str.contains(country_preference, case=False, na=False)
-            country_df = self.world_df[country_mask]
-            
-            if country_df.empty:
-                return pd.DataFrame()
+    def recommend(
+        self,
+        query: str,
+        country: Optional[str] = None,
+        state: Optional[str] = None,
+        top_k: int = 10
+    ) -> pd.DataFrame:
 
-            pattern = '|'.join(keywords)
-            name_mask = country_df['name'].str.contains(pattern, case=False, na=False)
-            results = country_df[name_mask][['name', 'country', 'web_pages']].head(10)
-            
-            if len(results) < 3:
-                print(f"   (Note: Few specific matches found for '{career_field}'. Adding general top universities.)")
-                general_unis = country_df[['name', 'country', 'web_pages']].head(5)
-                results = pd.concat([results, general_unis]).drop_duplicates(subset=['name']).head(10)
-            
-            results.columns = ['University/College', 'Country', 'Website']
-            
-        return results
+        query_vec = self.feature_builder.encode(query)
+        scores = cosine_similarity(query_vec, self.embedding_matrix).flatten()
+
+        results = self.unified_df.copy()
+        results["score"] = scores
+
+        if country:
+            results = results[results["country"].str.contains(country, case=False, na=False)]
+
+        if state and "State" in results.columns:
+            results = results[results["State"].str.contains(state, case=False, na=False)]
+
+        return (
+            results
+            .sort_values("score", ascending=False)
+            .head(top_k)[[
+                "name",
+                "country",
+                "State",
+                "District",
+                "Website",
+                "score"
+            ]]
+            .reset_index(drop=True)
+        )
