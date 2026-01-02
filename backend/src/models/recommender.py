@@ -14,7 +14,7 @@ class CareerRecommender:
             query_texts = query_text
 
         if self.feature_builder is None:
-            raise ValueError("Feature builder is required to encode queries.")
+            raise ValueError("[ERROR]: Feature builder is required to encode queries.")
 
         query_embedding = self.feature_builder.encode(query_texts)
 
