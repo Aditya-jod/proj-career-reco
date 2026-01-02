@@ -16,44 +16,49 @@ A AI recommendation engine that helps students discover their ideal career path,
 
 ## Key Features
 
-### 1. Intelligent Career Prediction (Machine Learning)
-*   **Algorithm:** Random Forest Classifier.
-*   **Input:** Academic scores (Math, Science, etc.) and Soft Skills (Leadership, Creativity, etc.).
-*   **Logic:** Analyzes patterns from 5,000+ student profiles to predict the most suitable **Broad Career Field** (e.g., STEM, Healthcare, Business).
-*   **Smart Feature:** Includes an **"Alternative Options"** system. If the AI is less than 50% confident, it presents the top 3 choices and lets the user decide.
+### 1. Intelligent Career Prediction
+- **Model:** RandomForestClassifier.
+- **Inputs:** Academic + soft-skill scores.
+- **Output:** Top career fields plus fallback options when confidence < 50%.
 
-### 2. University Recommendation (Rule-Based Filtering)
-*   Instead of matching keywords, the system compares the semantic meaning of career fields and university academic profiles, making the recommendations more accurate and future-proof
-*   **Algorithm:** Semantic Similarity (TF-IDF or Embeddings) as the primary logic
+### 2. University Recommendation (Semantic)
+- **Model:** Sentence-BERT embeddings + cosine similarity.
+- **Cache:** Embeddings stored once, then reused for fast lookup.
+- **Scope:** Filters by country/state/city for location-aware results.
 
-
-### 3. Job Role Recommendation (NLP & Content-Based Filtering)
-*   **Algorithm:** TF-IDF Vectorization + Cosine Similarity.
-*   **Dataset:** Trained on a sample of **30,000 real-world job descriptions**.
-*   **Logic:** Takes user-defined interests (e.g., "Python, Drawing") and finds the most mathematically similar job titles from the database.
-*   **Feature:** Supports specific skill queries (e.g., searching "Lawyer" will override a "STEM" prediction to show legal jobs).
+### 3. Job Role Recommendation (NLP)
+- **Model:** Sentence-BERT embeddings over 30k job descriptions.
+- **Logic:** Content-based matching on user-entered skills/interests.
+- **Override:** Interests can influence the final career choice.
 
 ---
 
-## Technical Architecture
+## Architecture Overview
 
-The system uses a **Hybrid Recommendation Approach**:
+1. **Classification Phase (Random Forest)**
+   - Input: academic and soft-skill scores.
+   - Model: RandomForestClassifier trained on 9k+ labeled student profiles.
+   - Output: top-k career fields with confidence metrics; low-confidence results trigger a fallback list for user choice.
 
-1.  **Phase 1 (Classification):**
-    *   *Input:* Numerical Scores.
-    *   *Model:* Random Forest.
-    *   *Output:* Broad Category (e.g., "Healthcare").
+2. **Semantic University Matching (Sentence-BERT)**
+   - Encode university descriptions and field tags using `all-MiniLM-L6-v2`.
+   - Store embeddings on disk to avoid recomputation; load into memory on startup.
+   - Filter by country/state/city, then rank via cosine similarity to the chosen career field vector.
 
-2.  **Phase 2 (Rule-Based Mapping):**
-    *   *Input:* Broad Category + Location.
-    *   *Logic:* Keyword Matching & Dictionary Mapping.
-    *   *Output:* List of Universities.
+3. **Semantic Job Retrieval (Sentence-BERT)**
+   - Concatenate job title, skills, description, and responsibilities into a `content` field.
+   - Encode 30k+ jobs once; reuse embeddings for fast similarity search.
+   - Encode user free-text interests at runtime and retrieve top-k roles based on cosine scores.
 
-3.  **Phase 3 (Content-Based Filtering):**
-    *   *Input:* User Keywords (Skills/Interests).
-    *   *Model:* TF-IDF (Term Frequency-Inverse Document Frequency).
-    *   *Output:* Specific Job Titles (e.g., "Neurosurgeon", "Python Developer").
+4. **MongoDB Persistence (Roadmap)**
+   - Collections planned for `users`, `sessions`, and `saved_plans`.
+   - Store inputs/outputs per session to enable history, analytics, and personalized recommendations.
+   - Connection handled through `src/db/mongo.py`, reading `MONGODB_URI` / `MONGODB_DB_NAME` from environment variables.
 
+5. **Frontend + API Integration (Roadmap)**
+   - Backend: refactor CLI into FastAPI endpoints (`/auth`, `/recommend`, `/history`).
+   - Frontend: React + Vite + Tailwind for interactive forms, dashboards, and result visualizations.
+   - Deployment: both services hosted on Render with environment-based configuration and CORS-enabled communication.
 ---
 
 ## Project Structure
