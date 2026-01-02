@@ -23,7 +23,9 @@ A AI recommendation engine that helps students discover their ideal career path,
 *   **Smart Feature:** Includes an **"Alternative Options"** system. If the AI is less than 50% confident, it presents the top 3 choices and lets the user decide.
 
 ### 2. University Recommendation (Rule-Based Filtering)
-Instead of matching keywords, the system compares the semantic meaning of career fields and university academic profiles, making the recommendations more accurate and future-proof
+*   Instead of matching keywords, the system compares the semantic meaning of career fields and university academic profiles, making the recommendations more accurate and future-proof
+*   **Algorithm:** Semantic Similarity (TF-IDF or Embeddings) as the primary logic
+
 
 ### 3. Job Role Recommendation (NLP & Content-Based Filtering)
 *   **Algorithm:** TF-IDF Vectorization + Cosine Similarity.
