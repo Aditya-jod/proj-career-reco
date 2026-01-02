@@ -2,23 +2,24 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
 class CareerRecommender:
-    def __init__(self, feature_builder, career_df, vector_column='Career'):
-         self.builder = feature_builder
-         self.career_df = career_df
-         self.vector_column = vector_column
+    def __init__(self, job_df, embedding_matrix, feature_builder=None):
+        self.job_df = job_df.reset_index(drop=True)
+        self.embedding_matrix = embedding_matrix
+        self.feature_builder = feature_builder
 
-         print("Caching career vectors for recommendation...")
-         self.career_vectors = self.builder.fit_transform(self.career_df[self.vector_column])
-        
-    def recommend(self, student_profile, top_k=5):
-         student_vector = self.builder.vectorizer.transform([student_profile])
-         similarities = cosine_similarity(student_vector, self.career_vectors)
-         top_indices = similarities[0].argsort()[-top_k:][::-1]
-         
-         results = []
-         for idx in top_indices:
-              score = similarities[0][idx]
-              original_idx = self.career_df.index[idx]
-              results.append({"index": original_idx, "score": score})
+    def recommend(self, query_text, top_k=10):
+        if isinstance(query_text, str):
+            query_texts = [query_text]
+        else:
+            query_texts = query_text
 
-         return pd.DataFrame(results)
+        if self.feature_builder is None:
+            raise ValueError("Feature builder is required to encode queries.")
+
+        query_embedding = self.feature_builder.encode(query_texts)
+
+        scores = cosine_similarity(query_embedding, self.embedding_matrix).flatten()
+
+        top_idx = scores.argsort()[::-1][:top_k]
+        return self.job_df.iloc[top_idx].assign(score=scores[top_idx])
+    
