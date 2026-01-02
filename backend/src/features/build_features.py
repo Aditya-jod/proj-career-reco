@@ -1,25 +1,29 @@
-import pandas as pd 
-import numpy as np 
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+import logging
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
+logger = logging.getLogger(__name__)
+
 
 class FeatureBuilder:
-    def __init__(self, max_features=5000):
-        "Initialize the TF-IDF Vectorizer."
-        self.vectorizer = TfidfVectorizer(
-            max_features=max_features,
-            stop_words='english'
+    _model = None  # 🔒 shared singleton
+
+    def __init__(self, model_name="all-MiniLM-L6-v2", device="cpu"):
+        if FeatureBuilder._model is None:
+            logger.info(f"Loading Sentence-BERT model: {model_name}")
+            FeatureBuilder._model = SentenceTransformer(model_name, device=device)
+
+        self.model = FeatureBuilder._model
+
+    def encode(self, texts, batch_size=64, normalize=True):
+        if isinstance(texts, str):
+            texts = [texts]
+
+        embeddings = self.model.encode(
+            texts,
+            batch_size=batch_size,
+            show_progress_bar=False,
+            convert_to_numpy=True,
+            normalize_embeddings=normalize
         )
-        self.feature_matrix = None
-
-    def fit_transform(self, text_data):
-        "Learn vocabulary and convert text data to TF-IDF matrix "
-        print("Generating TF-IDF features...")
-        self.feature_matrix = self.vectorizer.fit_transform(text_data)
-
-        print(f"Feature Matrix shape: {self.feature_matrix.shape}")
-        return self.feature_matrix
-    
-    def get_similarity(self, vector1, vector2):
-        "Compute Cosine Similarity between two vectors."
-        return cosine_similarity(vector1, vector2)
+        return embeddings
