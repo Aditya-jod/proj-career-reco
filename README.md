@@ -23,10 +23,7 @@ A AI recommendation engine that helps students discover their ideal career path,
 *   **Smart Feature:** Includes an **"Alternative Options"** system. If the AI is less than 50% confident, it presents the top 3 choices and lets the user decide.
 
 ### 2. University Recommendation (Rule-Based Filtering)
-*   **Logic:** Maps the predicted career field to specific university courses.
-*   **Smart Mapping:** Handles specific job titles (e.g., "Field Engineer" -> "STEM") to ensure relevant results.
-*   **Database:** Searches through a database of Indian and International universities.
-*   **Diversity:** Uses randomized sampling to show a diverse mix of colleges across different states/regions, avoiding bias towards a single location.
+Instead of matching keywords, the system compares the semantic meaning of career fields and university academic profiles, making the recommendations more accurate and future-proof
 
 ### 3. Job Role Recommendation (NLP & Content-Based Filtering)
 *   **Algorithm:** TF-IDF Vectorization + Cosine Similarity.
