@@ -1,7 +1,9 @@
 import sys
 import os
 import logging
+import numpy as np
 import pandas as pd
+from pathlib import Path
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
@@ -66,7 +68,7 @@ def initialize_systems(datasets):
     """
     logger.info("Initializing Career Predictor...")
     career_predictor = CareerPredictor()
-    career_predictor.train(datasets["student_reco"], verbose=False)
+    career_predictor.load_or_train(datasets["student_reco"], verbose=False)
 
     logger.info("Initializing University Recommender...")
     feature_builder = FeatureBuilder()
@@ -77,14 +79,34 @@ def initialize_systems(datasets):
     )
 
     logger.info("Initializing Job Recommender...")
-    job_df = datasets["job_descriptions"].drop_duplicates(subset=["Job Title"]).copy()
-    job_df["content"] = job_df[
-        ["Job Title", "skills", "Job Description", "Responsibilities"]
-    ].fillna("").agg(" ".join, axis=1)
+    cache_dir = Path("models/cache")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    job_df_path = cache_dir / "job_df.parquet"
+    job_emb_path = cache_dir / "job_embeddings.npy"
+
+    if job_df_path.exists() and job_emb_path.exists():
+        job_df = pd.read_parquet(job_df_path)
+        job_embeddings = np.load(job_emb_path)
+    else:
+        job_df = (
+            datasets["job_descriptions"]
+            .drop_duplicates(subset=["Job Title"])
+            .reset_index(drop=True)
+            .copy()
+        )
+        job_df["job_idx"] = job_df.index
+        job_df["content"] = job_df[
+            ["Job Title", "skills", "Job Description", "Responsibilities"]
+        ].fillna("").agg(" ".join, axis=1)
+
+        job_feature_builder = FeatureBuilder()
+        job_embeddings = job_feature_builder.encode(
+            job_df["content"].tolist(), batch_size=128
+        )
+        job_df.to_parquet(job_df_path, index=False)
+        np.save(job_emb_path, job_embeddings)
 
     job_feature_builder = FeatureBuilder()
-    job_embeddings = job_feature_builder.encode(job_df["content"].tolist(), batch_size=128)
-
     job_recommender = CareerRecommender(
         job_df=job_df,
         embedding_matrix=job_embeddings,
@@ -137,7 +159,7 @@ def run_pipeline():
         seen = set()
         count = 0
         for _, row in jobs.iterrows():
-            title = job_df.loc[row["index"], "Job Title"]
+            title = job_df.loc[row["job_idx"], "Job Title"]
             if title not in seen:
                 seen.add(title)
                 count += 1
