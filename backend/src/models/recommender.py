@@ -4,8 +4,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 class CareerRecommender:
     def __init__(self, job_df, embedding_matrix, feature_builder=None):
         self.job_df = job_df.reset_index(drop=True)
+        if "job_idx" not in self.job_df.columns:
+            self.job_df["job_idx"] = self.job_df.index
         self.embedding_matrix = embedding_matrix
         self.feature_builder = feature_builder
+
 
     def recommend(self, query_text, top_k=10):
         if isinstance(query_text, str):
@@ -14,7 +17,7 @@ class CareerRecommender:
             query_texts = query_text
 
         if self.feature_builder is None:
-            raise ValueError("[ERROR]: Feature builder is required to encode queries.")
+            raise ValueError("Feature builder is required to encode queries.")
 
         query_embedding = self.feature_builder.encode(query_texts)
 
