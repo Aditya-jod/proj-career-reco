@@ -8,3 +8,6 @@ pyyaml
 ipykernel
 matplotlib
 seaborn
+joblib
+pymongo
+pyarrow
