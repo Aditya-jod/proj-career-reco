@@ -34,6 +34,13 @@ class CareerPredictor:
             return clean.strip()
         return label
 
+    def load_or_train(self, df, verbose=True):
+        """Load a saved model if available, otherwise train a new one."""
+        if os.path.exists(self.model_path):
+            self._load_model()
+            return
+        self.train(df, verbose=verbose)
+
     def train(self, df, verbose=True):
         if verbose:
             print("\n" + "="*40)
