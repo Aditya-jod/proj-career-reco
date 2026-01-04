@@ -1,84 +1,101 @@
 import os
+from dataclasses import dataclass
+from typing import List, Optional
+
 import numpy as np
 import pandas as pd
-from typing import Optional
 from sklearn.metrics.pairwise import cosine_similarity
 
 
+@dataclass
+class UniversityDatasetBuilder:
+    """Normalizes raw Indian/world college feeds into a unified dataframe."""
+
+    indian_df: pd.DataFrame
+    world_df: pd.DataFrame
+
+    def build(self) -> pd.DataFrame:
+        indian = self.indian_df.copy()
+        world = self.world_df.copy()
+
+        indian["search_text"] = (
+            indian["College Name"].fillna("")
+            + " "
+            + indian["University Name"].fillna("")
+            + " "
+            + indian["Specialised in"].fillna("")
+            + " "
+            + indian["College Type"].fillna("")
+            + " "
+            + indian["University Type"].fillna("")
+            + " "
+            + indian["Management"].fillna("")
+        )
+        indian["country"] = "India"
+        indian_clean = indian[
+            [
+                "search_text",
+                "College Name",
+                "State",
+                "District",
+                "country",
+                "Website",
+            ]
+        ].rename(columns={"College Name": "name"})
+
+        world["search_text"] = world["name"].fillna("") + " " + world["country"].fillna("")
+        world_clean = world[
+            ["search_text", "name", "country", "web_pages"]
+        ].rename(columns={"web_pages": "Website"})
+
+        unified = pd.concat([indian_clean, world_clean], ignore_index=True)
+        unified["Website"] = unified["Website"].astype(str)
+        return unified
+
+
+class EmbeddingCache:
+    """Manages loading and persisting sentence embeddings."""
+
+    def __init__(self, feature_builder, cache_path: str):
+        self.feature_builder = feature_builder
+        self.cache_path = cache_path
+
+    def load_or_build(self, texts: List[str]) -> np.ndarray:
+        if os.path.exists(self.cache_path):
+            print("⚡ Loading cached university embeddings...")
+            return np.load(self.cache_path)
+
+        print("🚀 Computing university embeddings (one-time)...")
+        embeddings = self.feature_builder.encode(texts)
+        os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
+        np.save(self.cache_path, embeddings)
+        print("✅ Embeddings cached")
+        return embeddings
+
+
 class UniversityRecommender:
+    """Ranks universities using semantic similarity between query and metadata."""
+
     def __init__(
         self,
         feature_builder,
         indian_df: pd.DataFrame,
         world_df: pd.DataFrame,
-        embedding_path: str = "models/university_embeddings.npy"
+        embedding_path: str = "models/university_embeddings.npy",
     ):
         self.feature_builder = feature_builder
-        self.embedding_path = embedding_path
-
-        self.indian_df = indian_df.copy()
-        self.world_df = world_df.copy()
-
-        self._prepare_data()
-        self._load_or_build_embeddings()
-
-    def _prepare_data(self):
-        self.indian_df["search_text"] = (
-            self.indian_df["College Name"].fillna("") + " " +
-            self.indian_df["University Name"].fillna("") + " " +
-            self.indian_df["Specialised in"].fillna("") + " " +
-            self.indian_df["College Type"].fillna("") + " " +
-            self.indian_df["University Type"].fillna("") + " " +
-            self.indian_df["Management"].fillna("")
-        )
-
-        self.indian_df["country"] = "India"
-
-        indian_clean = self.indian_df[[
-            "search_text",
-            "College Name",
-            "State",
-            "District",
-            "country",
-            "Website"
-        ]].rename(columns={"College Name": "name"})
-
-        self.world_df["search_text"] = (
-            self.world_df["name"].fillna("") + " " +
-            self.world_df["country"].fillna("")
-        )
-
-        world_clean = self.world_df[[
-            "search_text",
-            "name",
-            "country",
-            "web_pages"
-        ]].rename(columns={"web_pages": "Website"})
-
-        self.unified_df = pd.concat([indian_clean, world_clean], ignore_index=True)
-        self.unified_df["Website"] = self.unified_df["Website"].astype(str)
-
-    def _load_or_build_embeddings(self):
-        if os.path.exists(self.embedding_path):
-            print("⚡ Loading cached university embeddings...")
-            self.embedding_matrix = np.load(self.embedding_path)
-        else:
-            print("🚀 Computing university embeddings (one-time)...")
-            self.embedding_matrix = self.feature_builder.encode(
-                self.unified_df["search_text"].tolist()
-            )
-            os.makedirs(os.path.dirname(self.embedding_path), exist_ok=True)
-            np.save(self.embedding_path, self.embedding_matrix)
-            print("✅ Embeddings cached")
+        dataset_builder = UniversityDatasetBuilder(indian_df, world_df)
+        self.unified_df = dataset_builder.build()
+        cache = EmbeddingCache(feature_builder, embedding_path)
+        self.embedding_matrix = cache.load_or_build(self.unified_df["search_text"].tolist())
 
     def recommend(
         self,
         query: str,
         country: Optional[str] = None,
         state: Optional[str] = None,
-        top_k: int = 10
+        top_k: int = 10,
     ) -> pd.DataFrame:
-
         query_vec = self.feature_builder.encode(query)
         scores = cosine_similarity(query_vec, self.embedding_matrix).flatten()
 
@@ -92,15 +109,7 @@ class UniversityRecommender:
             results = results[results["State"].str.contains(state, case=False, na=False)]
 
         return (
-            results
-            .sort_values("score", ascending=False)
-            .head(top_k)[[
-                "name",
-                "country",
-                "State",
-                "District",
-                "Website",
-                "score"
-            ]]
+            results.sort_values("score", ascending=False)
+            .head(top_k)[["name", "country", "State", "District", "Website", "score"]]
             .reset_index(drop=True)
         )
