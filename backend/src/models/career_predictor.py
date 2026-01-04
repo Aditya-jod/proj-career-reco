@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 from dataclasses import dataclass
@@ -10,6 +11,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -45,14 +48,14 @@ class ModelStorage:
     def save(self, model, encoder, features):
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
         joblib.dump({"model": model, "encoder": encoder, "features": features}, self.path)
-        print(f"Model saved successfully to {self.path}")
+        logger.info("Career predictor model saved to %s", self.path)
 
     def load(self):
         if not self.exists():
             raise FileNotFoundError(f"No saved model found at {self.path}")
-        print(f"Loading saved model from {self.path}...")
+        logger.info("Loading career predictor model from %s", self.path)
         data = joblib.load(self.path)
-        print("Model loaded successfully.")
+        logger.info("Career predictor model loaded successfully")
         return data["model"], data["encoder"], data["features"]
 
 class CareerPredictor:
@@ -83,16 +86,16 @@ class CareerPredictor:
     def train(self, df, verbose=True):
         try:
             if verbose:
-                print("\n" + "=" * 40)
-                print("   TRAINING CAREER PREDICTOR MODEL")
-                print("=" * 40)
-                print("Preparing training data...")
+                logger.info("\n%s", "=" * 40)
+                logger.info("   TRAINING CAREER PREDICTOR MODEL")
+                logger.info("%s", "=" * 40)
+                logger.info("Preparing training data...")
 
             dataset = CareerDatasetBuilder(df, self.feature_columns)
             X, y = dataset.build()
 
             if verbose:
-                print(f"Unique classes found: {y.unique()}")
+                logger.info("Unique classes found: %s", y.unique())
 
             y_encoded = self.label_encoder.fit_transform(y)
             X_train, X_test, y_train, y_test = train_test_split(
@@ -100,22 +103,19 @@ class CareerPredictor:
             )
 
             if verbose:
-                print("Fitting Random Forest Classifier...")
+                logger.info("Fitting Random Forest Classifier...")
             self.model.fit(X_train, y_train)
             self.is_trianed = True
 
             if verbose:
-                print("\n--- Model Evaluation Results ---")
+                logger.info("\n--- Model Evaluation Results ---")
                 accuracy = self.model.score(X_test, y_test)
-                print(f"Accuracy: {accuracy:.2%}")
+                logger.info("Accuracy: %.2f%%", accuracy * 100)
 
                 y_pred = self.model.predict(X_test)
-                print("\nClassification Report:")
-                print(
-                    classification_report(
-                        y_test, y_pred, target_names=self.label_encoder.classes_
-                    )
-                )
+                logger.info("\nClassification Report:\n%s", classification_report(
+                    y_test, y_pred, target_names=self.label_encoder.classes_
+                ))
 
             self._save_model()
         except Exception as exc:
