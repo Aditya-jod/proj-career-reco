@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class FeatureBuilder:
-    _model = None  # 🔒 shared singleton
+    _model = None 
 
     def __init__(self, model_name="all-MiniLM-L6-v2", device="cpu"):
         if FeatureBuilder._model is None:
