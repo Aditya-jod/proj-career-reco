@@ -1,6 +1,6 @@
 # Frontend Structure for Career Path Recommender
 
-This folder will contain the React (Vite) frontend code.
+This folder will contain the frontend code. The frontend will be built using React, Vite, and Tailwind CSS to provide an interactive user interface for the Career Path Recommender System. It will communicate with the backend FastAPI service to fetch career predictions, university recommendations, and job role suggestions based on user input.
 
 ## Planned Structure
 
