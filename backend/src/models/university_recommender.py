@@ -15,42 +15,45 @@ class UniversityDatasetBuilder:
     world_df: pd.DataFrame
 
     def build(self) -> pd.DataFrame:
-        indian = self.indian_df.copy()
-        world = self.world_df.copy()
+        try:
+            indian = self.indian_df.copy()
+            world = self.world_df.copy()
 
-        indian["search_text"] = (
-            indian["College Name"].fillna("")
-            + " "
-            + indian["University Name"].fillna("")
-            + " "
-            + indian["Specialised in"].fillna("")
-            + " "
-            + indian["College Type"].fillna("")
-            + " "
-            + indian["University Type"].fillna("")
-            + " "
-            + indian["Management"].fillna("")
-        )
-        indian["country"] = "India"
-        indian_clean = indian[
-            [
-                "search_text",
-                "College Name",
-                "State",
-                "District",
-                "country",
-                "Website",
-            ]
-        ].rename(columns={"College Name": "name"})
+            indian["search_text"] = (
+                indian["College Name"].fillna("")
+                + " "
+                + indian["University Name"].fillna("")
+                + " "
+                + indian["Specialised in"].fillna("")
+                + " "
+                + indian["College Type"].fillna("")
+                + " "
+                + indian["University Type"].fillna("")
+                + " "
+                + indian["Management"].fillna("")
+            )
+            indian["country"] = "India"
+            indian_clean = indian[
+                [
+                    "search_text",
+                    "College Name",
+                    "State",
+                    "District",
+                    "country",
+                    "Website",
+                ]
+            ].rename(columns={"College Name": "name"})
 
-        world["search_text"] = world["name"].fillna("") + " " + world["country"].fillna("")
-        world_clean = world[
-            ["search_text", "name", "country", "web_pages"]
-        ].rename(columns={"web_pages": "Website"})
+            world["search_text"] = world["name"].fillna("") + " " + world["country"].fillna("")
+            world_clean = world[
+                ["search_text", "name", "country", "web_pages"]
+            ].rename(columns={"web_pages": "Website"})
 
-        unified = pd.concat([indian_clean, world_clean], ignore_index=True)
-        unified["Website"] = unified["Website"].astype(str)
-        return unified
+            unified = pd.concat([indian_clean, world_clean], ignore_index=True)
+            unified["Website"] = unified["Website"].astype(str)
+            return unified
+        except Exception as exc:
+            raise ValueError("Failed to build university dataset") from exc
 
 
 class EmbeddingCache:
@@ -61,16 +64,19 @@ class EmbeddingCache:
         self.cache_path = cache_path
 
     def load_or_build(self, texts: List[str]) -> np.ndarray:
-        if os.path.exists(self.cache_path):
-            print("⚡ Loading cached university embeddings...")
-            return np.load(self.cache_path)
+        try:
+            if os.path.exists(self.cache_path):
+                print("⚡ Loading cached university embeddings...")
+                return np.load(self.cache_path)
 
-        print("🚀 Computing university embeddings (one-time)...")
-        embeddings = self.feature_builder.encode(texts)
-        os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
-        np.save(self.cache_path, embeddings)
-        print("✅ Embeddings cached")
-        return embeddings
+            print("🚀 Computing university embeddings (one-time)...")
+            embeddings = self.feature_builder.encode(texts)
+            os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
+            np.save(self.cache_path, embeddings)
+            print("✅ Embeddings cached")
+            return embeddings
+        except Exception as exc:
+            raise RuntimeError("Unable to load or build university embeddings") from exc
 
 
 class UniversityRecommender:
@@ -96,8 +102,11 @@ class UniversityRecommender:
         state: Optional[str] = None,
         top_k: int = 10,
     ) -> pd.DataFrame:
-        query_vec = self.feature_builder.encode(query)
-        scores = cosine_similarity(query_vec, self.embedding_matrix).flatten()
+        try:
+            query_vec = self.feature_builder.encode(query)
+            scores = cosine_similarity(query_vec, self.embedding_matrix).flatten()
+        except Exception as exc:
+            raise RuntimeError("Unable to score university recommendations") from exc
 
         results = self.unified_df.copy()
         results["score"] = scores
