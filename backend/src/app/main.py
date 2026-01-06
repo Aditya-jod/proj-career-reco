@@ -11,7 +11,7 @@ from src.data.loader import load_config, load_raw_data
 from src.data.preprocessing import clean_text
 from src.features.build_features import FeatureBuilder
 from src.models.career_predictor import CareerPredictor
-from src.models.recommender import CareerRecommender
+from src.models.career_recommender import CareerRecommender
 from src.models.university_recommender import UniversityRecommender
 
 
@@ -30,10 +30,10 @@ def collect_user_profile() -> dict:
         return float(val) if val else default
 
     profile = {
-        "Mathematics_Score": _get_score("Mathematics", 50),
-        "Science_Score": _get_score("Science", 50),
-        "Language_Arts_Score": _get_score("Language Arts", 50),
-        "Social_Studies_Score": _get_score("Social Studies", 50),
+        "Mathematics_Score": _get_score("Mathematics", 0),
+        "Science_Score": _get_score("Science", 0),
+        "Language_Arts_Score": _get_score("Language Arts", 0),
+        "Social_Studies_Score": _get_score("Social Studies", 0),
     }
 
     def _get_skill(name, default):
@@ -42,11 +42,11 @@ def collect_user_profile() -> dict:
 
     profile.update(
         {
-            "Logical_Reasoning": _get_skill("Logical Reasoning", 5),
-            "Creativity": _get_skill("Creativity", 5),
-            "Communication": _get_skill("Communication", 5),
-            "Leadership": _get_skill("Leadership", 5),
-            "Social_Skills": _get_skill("Social Skills", 5),
+            "Logical_Reasoning": _get_skill("Logical Reasoning", 0),
+            "Creativity": _get_skill("Creativity", 0),
+            "Communication": _get_skill("Communication", 0),
+            "Leadership": _get_skill("Leadership", 0),
+            "Social_Skills": _get_skill("Social Skills", 0),
         }
     )
 
@@ -116,7 +116,6 @@ def initialize_systems(datasets):
     return career_predictor, university_recommender, job_recommender, job_df
 
 # PIPELINE
-
 def run_pipeline():
     config = load_config()
     datasets = load_raw_data(config)
