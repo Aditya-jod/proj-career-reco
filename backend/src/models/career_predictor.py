@@ -8,9 +8,19 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+
+from config import (
+    FEATURE_COLUMNS,
+    MODEL_PATH,
+    RF_N_ESTIMATORS,
+    RF_RANDOM_STATE,
+    TARGET_COLUMN,
+    TEST_SIZE,
+    TRAIN_RANDOM_STATE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +29,7 @@ logger = logging.getLogger(__name__)
 class CareerDatasetBuilder:
     df: pd.DataFrame
     feature_columns: list
-    target_column: str = "Primary_Career_Recommendation"
+    target_column: str = TARGET_COLUMN
 
     def build(self) -> Tuple[pd.DataFrame, pd.Series]:
         try:
@@ -45,12 +55,14 @@ class ModelStorage:
     def exists(self) -> bool:
         return os.path.exists(self.path)
 
-    def save(self, model, encoder, features):
+    def save_model(self, model, encoder, features):
+        """Save the model, encoder, and features to disk."""
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
         joblib.dump({"model": model, "encoder": encoder, "features": features}, self.path)
         logger.info("Career predictor model saved to %s", self.path)
 
-    def load(self):
+    def load_model(self):
+        """Load the model, encoder, and features from disk."""
         if not self.exists():
             raise FileNotFoundError(f"No saved model found at {self.path}")
         logger.info("Loading career predictor model from %s", self.path)
@@ -59,21 +71,13 @@ class ModelStorage:
         return data["model"], data["encoder"], data["features"]
 
 class CareerPredictor:
-    def __init__(self, model_path="models/career_predictor.pkl"):
-        self.model = RandomForestClassifier(n_estimators=100, random_state=42)
+    def __init__(self, model_path: str = MODEL_PATH):
+        self.model = RandomForestClassifier(
+            n_estimators=RF_N_ESTIMATORS, random_state=RF_RANDOM_STATE
+        )
         self.label_encoder = LabelEncoder()
-        self.is_trianed = False
-        self.feature_columns = [
-            "Mathematics_Score",
-            "Science_Score",
-            "Language_Arts_Score",
-            "Social_Studies_Score",
-            "Logical_Reasoning",
-            "Creativity",
-            "Communication",
-            "Leadership",
-            "Social_Skills",
-        ]
+        self.is_trained = False
+        self.feature_columns = FEATURE_COLUMNS
         self.storage = ModelStorage(model_path)
 
     def load_or_train(self, df, verbose=True):
@@ -99,13 +103,13 @@ class CareerPredictor:
 
             y_encoded = self.label_encoder.fit_transform(y)
             X_train, X_test, y_train, y_test = train_test_split(
-                X, y_encoded, test_size=0.2, random_state=42
+                X, y_encoded, test_size=TEST_SIZE, random_state=TRAIN_RANDOM_STATE
             )
 
             if verbose:
                 logger.info("Fitting Random Forest Classifier...")
             self.model.fit(X_train, y_train)
-            self.is_trianed = True
+            self._mark_trained()
 
             if verbose:
                 logger.info("\n--- Model Evaluation Results ---")
@@ -154,11 +158,7 @@ class CareerPredictor:
             raise RuntimeError("Failed to compute top career predictions") from exc
     
     def _prepare_input(self, user_input: dict) -> pd.DataFrame:
-        if not self.is_trianed:
-            if self.storage.exists():
-                self._load_model()
-            else:
-                raise RuntimeError("Model is not trained yet.")
+        self._ensure_model_loaded()
         try:
             missing = [col for col in self.feature_columns if col not in user_input]
             if missing:
@@ -183,9 +183,23 @@ class CareerPredictor:
         except Exception as exc:
             raise RuntimeError("Failed to prepare input for prediction") from exc
 
-    def _save_model(self):
-        self.storage.save(self.model, self.label_encoder, self.feature_columns)
+    def _ensure_model_loaded(self) -> None:
+        """Ensure the model is trained or loaded from disk."""
+        if not self.is_trained:
+            if self.storage.exists():
+                self._load_model()
+            else:
+                raise RuntimeError("Model is not trained yet.")
 
-    def _load_model(self):
-        self.model, self.label_encoder, self.feature_columns = self.storage.load()
-        self.is_trianed = True
+    def _mark_trained(self) -> None:
+        """Mark the model as successfully trained."""
+        self.is_trained = True
+
+    def _save_model(self) -> None:
+        """Save the trained model to disk."""
+        self.storage.save_model(self.model, self.label_encoder, self.feature_columns)
+
+    def _load_model(self) -> None:
+        """Load the model from disk."""
+        self.model, self.label_encoder, self.feature_columns = self.storage.load_model()
+        self._mark_trained()
