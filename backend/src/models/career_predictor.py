@@ -12,7 +12,7 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
-from config import (
+from src.models.config import (
     FEATURE_COLUMNS,
     MODEL_PATH,
     RF_N_ESTIMATORS,

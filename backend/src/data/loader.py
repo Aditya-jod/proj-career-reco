@@ -1,17 +1,23 @@
+import os
+from pathlib import Path
+
 import pandas as pd
 import yaml
-import os
 
-def load_config(config_path="config/config.yaml"):
+
+DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "config.yaml"
+
+def load_config(config_path: str | None = None):
     """
     Load configuration from YAML file.
     """
+    path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
     try:
-        with open(config_path, "r") as f:
+        with open(path, "r") as f:
             config = yaml.safe_load(f)
         return config
     except FileNotFoundError:
-        print(f"Error: Config file not found at {config_path}")
+        print(f"Error: Config file not found at {path}")
         return None
 
 def load_raw_data(config):

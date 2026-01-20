@@ -1,4 +1,5 @@
 import os
+import re
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -79,6 +80,21 @@ class EmbeddingCache:
             raise RuntimeError("Unable to load or build university embeddings") from exc
 
 
+COUNTRY_ALIASES = {
+    "usa": ("usa", "united states", "us", "america", "u.s.", "u.s.a"),
+    "uk": ("uk", "united kingdom", "england", "britain", "great britain"),
+    "uae": ("uae", "united arab emirates", "dubai", "abu dhabi"),
+    "south korea": ("south korea", "korea", "republic of korea"),
+    "korea": ("south korea", "korea", "republic of korea"),
+    "china": ("china", "people's republic of china", "prc"),
+    "australia": ("australia", "aus"),
+    "canada": ("canada",),
+    "germany": ("germany", "deutschland"),
+    "france": ("france", "fr"),
+    "india": ("india", "bharat"),
+}
+
+
 class UniversityRecommender:
     """Ranks universities using semantic similarity between query and metadata."""
 
@@ -112,7 +128,8 @@ class UniversityRecommender:
         results["score"] = scores
 
         if country:
-            results = results[results["country"].str.contains(country, case=False, na=False)]
+            pattern = self._country_pattern(country)
+            results = results[results["country"].str.contains(pattern, case=False, na=False)]
 
         if state and "State" in results.columns:
             results = results[results["State"].str.contains(state, case=False, na=False)]
@@ -122,3 +139,13 @@ class UniversityRecommender:
             .head(top_k)[["name", "country", "State", "District", "Website", "score"]]
             .reset_index(drop=True)
         )
+
+    @staticmethod
+    def _country_pattern(country: str) -> str:
+        """Return a regex pattern covering common aliases for the requested country."""
+        normalized = country.strip().lower()
+        for aliases in COUNTRY_ALIASES.values():
+            if normalized in aliases:
+                escaped = [re.escape(alias) for alias in aliases]
+                return "|".join(escaped)
+        return re.escape(country)

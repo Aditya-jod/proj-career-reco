@@ -27,7 +27,13 @@ def collect_user_profile() -> dict:
 
     def _get_score(name, default):
         val = input(f"{name} (default {default}): ").strip()
-        return float(val) if val else default
+        if not val:
+            return int(default)
+        try:
+            return int(float(val))
+        except ValueError:
+            print("Invalid input. Please enter a numeric score.")
+            return _get_score(name, default)
 
     profile = {
         "Mathematics_Score": _get_score("Mathematics", 0),
@@ -38,7 +44,13 @@ def collect_user_profile() -> dict:
 
     def _get_skill(name, default):
         val = input(f"{name} (default {default}): ").strip()
-        return float(val) if val else default
+        if not val:
+            return int(default)
+        try:
+            return int(float(val))
+        except ValueError:
+            print("Invalid input. Please enter a numeric score.")
+            return _get_skill(name, default)
 
     profile.update(
         {
