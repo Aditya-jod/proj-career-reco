@@ -81,7 +81,15 @@ class EmbeddingCache:
 
 
 COUNTRY_ALIASES = {
-    "usa": ("usa", "united states", "us", "america", "u.s.", "u.s.a"),
+    "usa": (
+        "usa",
+        "united states",
+        "united states of america",
+        "us",
+        "america",
+        "u.s.",
+        "u.s.a",
+    ),
     "uk": ("uk", "united kingdom", "england", "britain", "great britain"),
     "uae": ("uae", "united arab emirates", "dubai", "abu dhabi"),
     "south korea": ("south korea", "korea", "republic of korea"),
@@ -129,7 +137,13 @@ class UniversityRecommender:
 
         if country:
             pattern = self._country_pattern(country)
-            results = results[results["country"].str.contains(pattern, case=False, na=False)]
+            filtered = results[results["country"].str.contains(pattern, case=False, na=False)]
+            if filtered.empty:
+                print(
+                    "⚠️ No universities found for the requested country; showing global matches instead."
+                )
+            else:
+                results = filtered
 
         if state and "State" in results.columns:
             results = results[results["State"].str.contains(state, case=False, na=False)]
