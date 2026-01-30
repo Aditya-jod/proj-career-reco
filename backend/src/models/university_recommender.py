@@ -79,7 +79,7 @@ class EmbeddingCache:
         except Exception as exc:
             raise RuntimeError("Unable to load or build university embeddings") from exc
 
-
+# I want to change this hard coded part! 
 COUNTRY_ALIASES = {
     "usa": (
         "usa",
