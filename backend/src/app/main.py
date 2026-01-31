@@ -88,6 +88,7 @@ def initialize_systems(datasets):
         feature_builder=feature_builder,
         indian_df=datasets["indian_colleges"],
         world_df=datasets["world_universities"],
+        student_df=datasets.get("student_reco"),
     )
 
     logger.info("Initializing Job Recommender...")
@@ -158,6 +159,7 @@ def run_pipeline():
             query=top_career,
             country=profile["preferred_location"],
             top_k=10,
+            skills_text=profile.get("skills_text", ""),
         )
 
         print("\n🏫 Recommended Universities:")
