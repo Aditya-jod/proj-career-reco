@@ -1,11 +1,21 @@
+import logging
 import os
-import re
 from dataclasses import dataclass
 from typing import List, Optional
 
 import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+
+from src.models.university_ranker import (
+    UniversityContext,
+    UniversityRankerModel,
+    UniversityRankerTrainer,
+)
+from src.models.country_utils import country_pattern
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -79,30 +89,6 @@ class EmbeddingCache:
         except Exception as exc:
             raise RuntimeError("Unable to load or build university embeddings") from exc
 
-# I want to change this hard coded part! 
-COUNTRY_ALIASES = {
-    "usa": (
-        "usa",
-        "united states",
-        "united states of america",
-        "us",
-        "america",
-        "u.s.",
-        "u.s.a",
-    ),
-    "uk": ("uk", "united kingdom", "england", "britain", "great britain"),
-    "uae": ("uae", "united arab emirates", "dubai", "abu dhabi"),
-    "south korea": ("south korea", "korea", "republic of korea"),
-    "korea": ("south korea", "korea", "republic of korea"),
-    "china": ("china", "people's republic of china", "prc"),
-    "australia": ("australia", "aus"),
-    "canada": ("canada",),
-    "germany": ("germany", "deutschland"),
-    "france": ("france", "fr"),
-    "india": ("india", "bharat"),
-}
-
-
 class UniversityRecommender:
     """Ranks universities using semantic similarity between query and metadata."""
 
@@ -112,12 +98,33 @@ class UniversityRecommender:
         indian_df: pd.DataFrame,
         world_df: pd.DataFrame,
         embedding_path: str = "models/university_embeddings.npy",
+        student_df: Optional[pd.DataFrame] = None,
+        ranker_model_path: str = "models/university_ranker.pkl",
+        train_ranker: bool = True,
     ):
         self.feature_builder = feature_builder
         dataset_builder = UniversityDatasetBuilder(indian_df, world_df)
         self.unified_df = dataset_builder.build()
         cache = EmbeddingCache(feature_builder, embedding_path)
         self.embedding_matrix = cache.load_or_build(self.unified_df["search_text"].tolist())
+        self.ranker: Optional[UniversityRankerModel] = None
+
+        if ranker_model_path:
+            self.ranker = UniversityRankerModel(ranker_model_path)
+            if (
+                train_ranker
+                and (not self.ranker.is_ready())
+                and student_df is not None
+                and not student_df.empty
+            ):
+                logger.info("Training university ranker model from available datasets...")
+                trainer = UniversityRankerTrainer()
+                trainer.train(
+                    universities=self.unified_df,
+                    career_labels=student_df.get("Primary_Career_Recommendation", []),
+                    save_path=ranker_model_path,
+                )
+                self.ranker = UniversityRankerModel(ranker_model_path)
 
     def recommend(
         self,
@@ -125,7 +132,42 @@ class UniversityRecommender:
         country: Optional[str] = None,
         state: Optional[str] = None,
         top_k: int = 10,
+        skills_text: str = "",
     ) -> pd.DataFrame:
+        candidate_df = self.unified_df
+        pattern = None
+        country_enforced = False
+
+        if country:
+            pattern = country_pattern(country)
+            filtered_candidates = candidate_df[
+                candidate_df["country"].str.contains(pattern, case=False, na=False)
+            ]
+            if filtered_candidates.empty:
+                print(
+                    "⚠️ No universities found for the requested country; showing global matches instead."
+                )
+            else:
+                candidate_df = filtered_candidates
+                country_enforced = True
+
+        if self.ranker and self.ranker.is_ready():
+            context = UniversityContext(
+                career_text=query,
+                skills_text=skills_text,
+                preferred_country=country,
+                preferred_state=state,
+            )
+            ranked = self.ranker.rank(candidate_df, context, top_k=top_k)
+            if pattern and not country_enforced:
+                filtered = ranked[ranked["country"].str.contains(pattern, case=False, na=False)]
+                if not filtered.empty:
+                    ranked = filtered
+            ranked = ranked.rename(columns={"ml_score": "score"})
+            return ranked[["name", "country", "State", "District", "Website", "score"]].reset_index(
+                drop=True
+            )
+
         try:
             query_vec = self.feature_builder.encode(query)
             scores = cosine_similarity(query_vec, self.embedding_matrix).flatten()
@@ -136,7 +178,7 @@ class UniversityRecommender:
         results["score"] = scores
 
         if country:
-            pattern = self._country_pattern(country)
+            pattern = country_pattern(country)
             filtered = results[results["country"].str.contains(pattern, case=False, na=False)]
             if filtered.empty:
                 print(
@@ -156,10 +198,5 @@ class UniversityRecommender:
 
     @staticmethod
     def _country_pattern(country: str) -> str:
-        """Return a regex pattern covering common aliases for the requested country."""
-        normalized = country.strip().lower()
-        for aliases in COUNTRY_ALIASES.values():
-            if normalized in aliases:
-                escaped = [re.escape(alias) for alias in aliases]
-                return "|".join(escaped)
-        return re.escape(country)
+        """Deprecated helper retained for backward compatibility."""
+        return country_pattern(country)
