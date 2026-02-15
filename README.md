@@ -94,3 +94,4 @@ A AI recommendation engine that helps students discover their ideal career path,
     ```bash
     python src/app/main.py
     ```
+
