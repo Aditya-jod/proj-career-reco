@@ -10,7 +10,7 @@ Write-Host ""
 $projectRoot = Split-Path $PSScriptRoot -Parent
 
 # Terminal 1: Backend
-Write-Host "🚀 Starting Backend (Terminal 1)..." -ForegroundColor Cyan
+Write-Host "Starting Backend (Terminal 1)..." -ForegroundColor Cyan
 Write-Host "Command: cd backend && .\venv\Scripts\activate && python -m uvicorn src.app.api:app --port 8000" -ForegroundColor Gray
 
 Start-Process powershell {
@@ -24,15 +24,15 @@ Start-Process powershell {
         Write-Host "Dependencies installed." -ForegroundColor Green
     }
     .\venv\Scripts\activate
-    Write-Host "🎯 Backend starting on http://localhost:8000" -ForegroundColor Green
-    Write-Host "📚 API docs: http://localhost:8000/docs" -ForegroundColor Green
+    Write-Host "Backend starting on http://localhost:8000" -ForegroundColor Green
+    Write-Host "API docs: http://localhost:8000/docs" -ForegroundColor Green
     python -m uvicorn src.app.api:app --host 0.0.0.0 --port 8000 --reload
 }
 
 Start-Sleep -Seconds 2
 
 # Terminal 2: Frontend
-Write-Host "🎨 Starting Frontend (Terminal 2)..." -ForegroundColor Cyan
+Write-Host "Starting Frontend (Terminal 2)..." -ForegroundColor Cyan
 Write-Host "Command: cd frontend && npm run dev" -ForegroundColor Gray
 
 Start-Process powershell {
@@ -42,15 +42,15 @@ Start-Process powershell {
         npm install
         Write-Host "Dependencies installed." -ForegroundColor Green
     }
-    Write-Host "🎯 Frontend starting on http://localhost:8080" -ForegroundColor Green
+    Write-Host "Frontend starting on http://localhost:8080" -ForegroundColor Green
     npm run dev
 }
 
 Write-Host ""
-Write-Host "✅ Both services starting..." -ForegroundColor Green
+Write-Host "Both services starting..." -ForegroundColor Green
 Write-Host ""
-Write-Host "📍 Frontend: http://localhost:8080" -ForegroundColor Blue
-Write-Host "📍 Backend: http://localhost:8000" -ForegroundColor Blue
-Write-Host "📚 API Docs: http://localhost:8000/docs" -ForegroundColor Blue
+Write-Host "Frontend: http://localhost:8080" -ForegroundColor Blue
+Write-Host "Backend: http://localhost:8000" -ForegroundColor Blue
+Write-Host "API Docs: http://localhost:8000/docs" -ForegroundColor Blue
 Write-Host ""
 Write-Host "Press Ctrl+C in either terminal to stop that service" -ForegroundColor Yellow
