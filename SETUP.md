@@ -2,15 +2,15 @@
 
 Complete guide to set up and run the Career Path Recommender System with the new FastAPI backend.
 
-## 📋 Prerequisites
+## Prerequisites
 
 - **Python 3.8+** (for backend)
 - **Node.js 18+** or **Bun** (for frontend)
 - **Git** (already in use)
 
-## 🚀 Quick Start
+## Quick Start
 
-### 1️⃣ **Backend Setup (Python)**
+### 1. Backend Setup (Python)
 
 #### Step 1.1: Install Backend Dependencies
 
@@ -64,11 +64,11 @@ INFO:     Uvicorn running on http://0.0.0.0:8000
 INFO:     Application startup complete
 ```
 
-Visit `http://localhost:8000/docs` to see **Swagger API documentation**.
+Visit `http://localhost:8000/docs` to see Swagger API documentation.
 
 ---
 
-### 2️⃣ **Frontend Setup (React + Vite)**
+### 2. Frontend Setup (React + Vite)
 
 #### Step 2.1: Install Frontend Dependencies
 
@@ -107,62 +107,62 @@ bun run dev
 
 **Expected output:**
 ```
-  Local:     http://localhost:8080/
-  press q + enter to stop
+    Local:     http://localhost:8080/
+    press q + enter to stop
 ```
 
 Visit `http://localhost:8080` in your browser.
 
 ---
 
-## 🔌 **How Frontend Connects to Backend**
+## How Frontend Connects to Backend
 
 ### Architecture
 
 ```
 Frontend (React)
-     ↓
+         ↓
 [careerData.ts] ← API calls with Fetch
-     ↓
+         ↓
 Backend FastAPI Server (http://localhost:8000)
-     ↓
+         ↓
 ML Models (Career Predictor, University Recommender, Job Recommender)
 ```
 
 ### Key Connection Points
 
 1. **API Base URL** configured in `frontend/.env`:
-   ```typescript
-   const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
-   ```
+     ```typescript
+     const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
+     ```
 
 2. **API Endpoints** used:
-   - `POST /api/recommend` — Get complete recommendations (main endpoint)
-   - `POST /api/career-predict` — Predict career field only
-   - `POST /api/universities` — Get university recommendations
-   - `POST /api/jobs` — Get job recommendations
-   - `GET /health` — Health check
+     - `POST /api/recommend` — Get complete recommendations (main endpoint)
+     - `POST /api/career-predict` — Predict career field only
+     - `POST /api/universities` — Get university recommendations
+     - `POST /api/jobs` — Get job recommendations
+     - `GET /health` — Health check
 
 3. **Data Flow**:
-   ```
-   User fills form → AssessmentForm.tsx
-       ↓
-   Form data → StudentProfile object
-       ↓
-   careerData.ts getRecommendations() function
-       ↓
-   Sends POST to /api/recommend
-       ↓
-   Backend processes with ML models
-       ↓
-   Returns RecommendationResult JSON
-       ↓
-   Frontend renders CareerResults component
-   ```
+     ```
+     User fills form → AssessmentForm.tsx
+             ↓
+     Form data → StudentProfile object
+             ↓
+     careerData.ts getRecommendations() function
+             ↓
+     Sends POST to /api/recommend
+             ↓
+     Backend processes with ML models
+             ↓
+     Returns RecommendationResult JSON
+             ↓
+     Frontend renders CareerResults component
+     ```
 
 ---
 
-## ✅ **Verify Everything Works**
+## Verify Everything Works
 
 ### Check Backend is Running
 
@@ -173,8 +173,8 @@ curl http://localhost:8000/health
 Expected response:
 ```json
 {
-  "status": "healthy",
-  "models_ready": true
+    "status": "healthy",
+    "models_ready": true
 }
 ```
 
@@ -184,9 +184,9 @@ Open browser DevTools (F12) → Console and run:
 
 ```javascript
 fetch('http://localhost:8000/health')
-  .then(r => r.json())
-  .then(d => console.log('Backend is running:', d))
-  .catch(e => console.error('Backend error:', e))
+    .then(r => r.json())
+    .then(d => console.log('Backend is running:', d))
+    .catch(e => console.error('Backend error:', e))
 ```
 
 ### Test Full Flow
@@ -200,45 +200,10 @@ fetch('http://localhost:8000/health')
 
 ---
 
-## 📁 **File Structure (Key Files)**
-
-```
-proj-career-reco/
-├── backend/
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── main.py          (CLI version)
-│   │   │   └── api.py           (✨ NEW - FastAPI server)
-│   │   ├── models/
-│   │   │   ├── career_predictor.py
-│   │   │   ├── university_recommender.py
-│   │   │   ├── career_recommender.py
-│   │   │   └── country_utils.py
-│   │   ├── features/
-│   │   ├── data/
-│   │   └── db/
-│   ├── requirements.txt          (✨ Updated with fastapi, uvicorn)
-│   ├── .env.example             (✨ NEW)
-│   └── .gitignore               (✨ Updated)
-│
-├── frontend/
-│   ├── src/
-│   │   ├── data/
-│   │   │   └── careerData.ts    (✨ NEW - API integration)
-│   │   ├── components/
-│   │   │   ├── AssessmentForm.tsx
-│   │   │   └── CareerResults.tsx
-│   │   ├── pages/
-│   │   └── App.tsx
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── .env.example             (✨ NEW)
-│   └── .gitignore               (✨ Updated)
-```
 
 ---
 
-## 🐛 **Troubleshooting**
+## Troubleshooting
 
 ### Backend Won't Start
 
@@ -262,10 +227,10 @@ python -m uvicorn src.app.api:app --port 8001
 **Error**: `Failed to get recommendations` / CORS error
 
 **Checklist**:
-- ✅ Backend is running on `http://localhost:8000`
-- ✅ Backend `/health` endpoint returns 200
-- ✅ `frontend/.env` has correct `VITE_API_URL`
-- ✅ Browser Network tab shows POST request to backend
+- Backend is running on `http://localhost:8000`
+- Backend `/health` endpoint returns 200
+- `frontend/.env` has correct `VITE_API_URL`
+- Browser Network tab shows POST request to backend
 
 **Solution**: Open DevTools → Console → Run:
 ```javascript
@@ -283,7 +248,7 @@ python -c "from src.data.loader import load_config, load_raw_data; c=load_config
 
 ---
 
-## 📦 **Production Build**
+## Production Build
 
 ### Build Frontend
 
@@ -296,24 +261,24 @@ Creates `dist/` folder ready for deployment.
 
 ### Deploy Backend
 
-Use services like **Render.com**, **Heroku**, **AWS**, etc.
+Use services like Render.com, Heroku, AWS, etc.
 
 Update frontend `.env` to production API URL.
 
 ---
 
-## 🔐 **Security Checklist**
+## Security Checklist
 
-- ✅ `node_modules/` in `.gitignore`
-- ✅ `venv/` in `.gitignore`
-- ✅ `.env` files in `.gitignore` (only `.env.example` committed)
-- ✅ `models/cache/` excluded (cache rebuilt on startup)
-- ✅ `__pycache__/` excluded
-- ✅ CORS enabled only for trusted origins (update for production)
+- `node_modules/` in `.gitignore`
+- `venv/` in `.gitignore`
+- `.env` files in `.gitignore` (only `.env.example` committed)
+- `models/cache/` excluded (cache rebuilt on startup)
+- `__pycache__/` excluded
+- CORS enabled only for trusted origins (update for production)
 
 ---
 
-## 📚 **Additional Commands**
+## Additional Commands
 
 ```bash
 # Frontend
@@ -331,14 +296,13 @@ pytest                              # Run tests (if configured)
 
 ---
 
-## 🎯 **Next Steps**
+## Next Steps
 
-1. ✅ Backend API running → http://localhost:8000
-2. ✅ Frontend connected → http://localhost:8080
-3. ⏭️ MongoDB integration (optional for user sessions)
-4. ⏭️ User authentication
-5. ⏭️ Deploy to cloud
+1. Backend API running → http://localhost:8000
+2. Frontend connected → http://localhost:8080
+3. MongoDB integration (optional for user sessions)
+4. User authentication
+5. Deploy to cloud
 
 ---
 
-Happy coding! 🚀
