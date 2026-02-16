@@ -55,43 +55,260 @@ A AI recommendation engine that helps students discover their ideal career path,
    - Store inputs/outputs per session to enable history, analytics, and personalized recommendations.
    - Connection handled through `src/db/mongo.py`, reading `MONGODB_URI` / `MONGODB_DB_NAME` from environment variables.
 
-5. **Frontend + API Integration (Roadmap)**
-   - Backend: refactor CLI into FastAPI endpoints (`/auth`, `/recommend`, `/history`).
-   - Frontend: React + Vite + Tailwind for interactive forms, dashboards, and result visualizations.
-   - Deployment: both services hosted on Render with environment-based configuration and CORS-enabled communication.
+5. **Frontend + API Integration (✅ LIVE)**
+   - Backend: FastAPI server (`src/app/api.py`) exposing all ML models via REST endpoints.
+   - Frontend: React + Vite + Tailwind for interactive forms and result visualizations.
+   - Connection: Fetch API calls from frontend to backend with CORS support.
+   - Environment-based configuration for easy switching between local and production servers.
+
 ---
 
+## 🚀 **Quick Start**
 
-## Getting Started
+### **Option 1: Automatic (PowerShell on Windows)**
+```bash
+.\start.ps1
+```
+This opens two terminals: one for backend, one for frontend.
 
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/Aditya-jod/proj-career-reco.git
-    cd proj-career-reco
-    ```
+### **Option 2: Automatic (Bash on Mac/Linux)**
+```bash
+chmod +x start.sh
+./start.sh
+```
 
-2.  **Create and activate a virtual environment**:
-    ```bash
-    python -m venv venv
-    # Windows
-    .\venv\Scripts\Activate
-    # Mac/Linux
-    source venv/bin/activate
-    ```
+### **Option 3: Manual Setup**
 
-3.  **Install dependencies**:
-    ```bash
-    pip install -r requirements.txt
-    ```
+**Terminal 1 - Start Backend:**
+```bash
+cd backend
+python -m venv venv
+# Windows: .\venv\Scripts\activate
+# Mac/Linux: source venv/bin/activate
+pip install -r requirements.txt
+python -m uvicorn src.app.api:app --port 8000
+```
 
-4.  **Download NLP models**:
-    ```bash
-    python -m spacy download en_core_web_sm
-    python -c "import nltk; nltk.download('stopwords'); nltk.download('wordnet')"
-    ```
+**Terminal 2 - Start Frontend:**
+```bash
+cd frontend
+npm install
+# or: bun install
+npm run dev
+# or: bun run dev
+```
 
-5.  **Run the application**:
-    ```bash
-    python src/app/main.py
-    ```
+**Visit in browser:**
+- Frontend: http://localhost:8080
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
 
+---
+
+## 📚 **Documentation**
+
+- **SETUP.md** — Detailed setup guide with troubleshooting
+- **IMPLEMENTATION_SUMMARY.md** — Technical details on backend-frontend connection
+- **Backend API Docs** — Swagger UI at http://localhost:8000/docs (when backend running)
+
+---
+
+## Architecture Diagram
+
+```
+┌─────────────────────────────────┐
+│   React Frontend                │
+│   (http://localhost:8080)       │
+│   - Assessment Form             │
+│   - Results Display             │
+└──────────────┬──────────────────┘
+               │
+        (Fetch API calls)
+               │
+               ▼
+┌─────────────────────────────────┐
+│   FastAPI Backend               │
+│   (http://localhost:8000)       │
+│   - /api/recommend              │
+│   - /api/career-predict         │
+│   - /api/universities           │
+│   - /api/jobs                   │
+│                                 │
+│   ML Models:                    │
+│   - RandomForest Classifier     │
+│   - Sentence-BERT Embeddings    │
+│   - Career/University/Job       │
+│     Recommenders                │
+└─────────────────────────────────┘
+       ▲
+       │
+    (Predictions & Recommendations)
+```
+
+---
+
+## 📁 **Project Structure**
+
+```
+proj-career-reco/
+├── backend/                    # Python/ML backend
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── main.py        # CLI version
+│   │   │   └── api.py         # FastAPI server (NEW)
+│   │   ├── models/            # ML models
+│   │   ├── features/          # Feature engineering
+│   │   ├── data/              # Data loading
+│   │   └── db/                # Database connections
+│   ├── requirements.txt        # Python dependencies
+│   ├── .env.example            # Environment template
+│   └── .gitignore
+│
+├── frontend/                   # React/TypeScript frontend
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── AssessmentForm.tsx
+│   │   │   ├── CareerResults.tsx
+│   │   │   └── HeroSection.tsx
+│   │   ├── pages/
+│   │   │   └── Index.tsx       # Main page (UPDATED)
+│   │   ├── data/
+│   │   │   └── careerData.ts   # API integration (NEW)
+│   │   └── App.tsx
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── .env.example            # Environment template
+│   └── .gitignore
+│
+├── models/                     # Trained ML models & cache
+├── SETUP.md                    # Detailed setup guide (NEW)
+├── IMPLEMENTATION_SUMMARY.md   # Tech details (NEW)
+├── start.ps1                   # Windows quick start (NEW)
+├── start.sh                    # Mac/Linux quick start (NEW)
+└── README.md                   # This file
+
+```
+
+---
+
+## 🔌 **Backend-Frontend Connection**
+
+The system is now fully integrated:
+
+1. **Frontend submits assessment form** with user interests and skills
+2. **Frontend calls backend API** (`POST /api/recommend`)
+3. **Backend runs ML models**:
+   - CareerPredictor → predicts career field
+   - UniversityRecommender → finds matching universities
+   - CareerRecommender → matches job roles
+4. **Backend returns recommendations** as JSON
+5. **Frontend displays results** beautifully
+
+All communication is via REST API with full error handling and fallbacks.
+
+---
+
+## 🛠️ **Configuration**
+
+### Backend Environment Variables (`.env`)
+```env
+MONGODB_URI=mongodb://localhost:27017/
+MONGODB_DB_NAME=career_recommender
+API_HOST=0.0.0.0
+API_PORT=8000
+APP_ENV=development
+```
+
+### Frontend Environment Variables (`.env`)
+```env
+VITE_API_URL=http://localhost:8000
+VITE_ENV=development
+```
+
+See `.env.example` files in both folders for template.
+
+---
+
+## 🧪 **Testing the Setup**
+
+**Verify backend:**
+```bash
+curl http://localhost:8000/health
+# Response: {"status": "healthy", "models_ready": true}
+```
+
+**Check API documentation:**
+Visit http://localhost:8000/docs when backend is running (Swagger UI)
+
+**Test frontend-backend connection:**
+Open browser DevTools console and run:
+```javascript
+fetch('http://localhost:8000/health').then(r => r.json()).then(d => console.log(d))
+```
+
+---
+
+## 📚 **Available Commands**
+
+### Backend
+```bash
+# Development
+python -m uvicorn src.app.api:app --reload
+
+# Run CLI version (legacy)
+python src/app/main.py
+
+# Check health
+curl http://localhost:8000/health
+```
+
+### Frontend
+```bash
+# Development
+npm run dev          # Start dev server
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+
+# With bun
+bun run dev
+bun run build
+```
+
+---
+
+## 🎯 **Next Steps**
+
+- [ ] MongoDB local setup for user sessions
+- [ ] Authentication & user accounts
+- [ ] Save recommendation history
+- [ ] Feedback mechanism for model improvement
+- [ ] Deploy to Render.com or cloud provider
+- [ ] Enhance assessment form with score input
+- [ ] Add career comparison feature
+
+---
+
+## 🤝 **Contributing**
+
+Contributions welcome! Please:
+1. Create a feature branch
+2. Make your changes
+3. Test locally
+4. Commit with clear messages
+5. Push and create a Pull Request
+
+---
+
+## 📄 **License**
+
+This project is open source. See LICENSE file for details.
+
+---
+
+## 👨‍💻 **Author**
+
+Built with ❤️ as an AI-powered career guidance system.
+
+For questions or issues, check SETUP.md or refer to IMPLEMENTATION_SUMMARY.md for technical details.
+````
