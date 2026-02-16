@@ -1,6 +1,6 @@
 import { ArrowRight, Compass, Brain, Target, Rocket, Users, Award, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
-import heroBg from "@/assets/hero-bg.jpg";
+import heroBg from "@/assets/CPR project image.png";
 
 interface HeroSectionProps {
   onStart: () => void;
@@ -42,10 +42,10 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
           </div>
         </nav>
 
-        {/* Background image */}
+        {/* Background image with overlays */}
         <div className="absolute inset-0">
           <img src={heroBg} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-br from-background via-background/90 to-primary/20" />
+          <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-background/70 to-primary/20" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         </div>
 
