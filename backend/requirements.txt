@@ -11,3 +11,8 @@ seaborn
 joblib
 pymongo
 pyarrow
+fastapi
+uvicorn
+python-multipart
+pydantic
+python-dotenv
