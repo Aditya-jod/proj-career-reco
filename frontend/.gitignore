@@ -29,3 +29,7 @@ coverage/
 # Build outputs
 build/
 out/
+
+
+# md files
+IMPLEMENTATION_SUMMARY.md
