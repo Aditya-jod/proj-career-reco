@@ -247,7 +247,7 @@ bun run build
 
 ---
 
-## 🤝 **Contributing**
+## **Contributing**
 
 Contributions welcome! Please:
 1. Create a feature branch
