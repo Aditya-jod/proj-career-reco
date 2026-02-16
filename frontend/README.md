@@ -25,3 +25,4 @@ frontend/
 ```
 
 > Scaffold with Vite + React + Tailwind CSS for a modern, fast, and maintainable frontend.
+
