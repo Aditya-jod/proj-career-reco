@@ -60,8 +60,8 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
         {/* Background image with overlays */}
         <div className="absolute inset-0">
           <img src={heroBg} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-br from-background/40 via-background/50 to-primary/10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background/20 via-background/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-br from-background/25 via-background/30 to-primary/5" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background/10 via-background/20 to-transparent" />
         </div>
 
         {/* Animated orbs */}
@@ -144,22 +144,24 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="max-w-6xl mx-auto grid gap-8 md:grid-cols-3 items-stretch mt-12">
           {steps.map((item, i) => (
             <div
               key={item.step}
-              className="group relative glass-card p-8 text-center hover:border-primary/60 transition-all duration-300 hover:shadow-[0_0_35px_hsl(var(--primary)/0.3)] hover:-translate-y-2 overflow-hidden"
+              className="group relative glass-card p-8 text-center hover:border-primary/60 transition-all duration-300 hover:shadow-[0_0_35px_hsl(var(--primary)/0.3)] hover:-translate-y-2 overflow-visible h-full flex flex-col items-center justify-between min-h-[320px]"
               style={{ animationDelay: `${i * 0.2}s` }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-gradient-to-r from-primary to-glow text-primary-foreground flex items-center justify-center text-xs font-bold font-display group-hover:scale-125 transition-transform duration-300 group-hover:shadow-[0_0_20px_hsl(var(--primary)/0.5)]">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-gradient-to-r from-primary to-glow text-primary-foreground flex items-center justify-center text-sm font-semibold font-display group-hover:scale-125 transition-transform duration-300 group-hover:shadow-[0_0_20px_hsl(var(--primary)/0.5)]">
                 {item.step}
               </div>
-              <div className="relative z-10 w-14 h-14 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center group-hover:scale-125 transition-transform duration-300 group-hover:shadow-[0_0_25px_hsl(var(--primary)/0.4)]">
+              <div className="relative z-10 w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center group-hover:scale-125 transition-transform duration-300 group-hover:shadow-[0_0_25px_hsl(var(--primary)/0.4)]">
                 <item.icon className="w-7 h-7 text-primary" />
               </div>
-              <h3 className="relative z-10 font-display font-semibold text-lg text-foreground mb-2 group-hover:text-primary transition-colors duration-300">{item.title}</h3>
-              <p className="relative z-10 text-sm text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors duration-300">{item.desc}</p>
+              <div className="relative z-10 flex-1 flex flex-col">
+                <h3 className="font-display font-semibold text-lg text-foreground mb-2 group-hover:text-primary transition-colors duration-300">{item.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors duration-300">{item.desc}</p>
+              </div>
             </div>
           ))}
         </div>
