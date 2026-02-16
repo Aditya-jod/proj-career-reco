@@ -20,3 +20,23 @@ env/
 # IDE
 .vscode/
 .idea/
+# ML Models & Cache
+models/cache/
+models/*.pkl
+models/*.npy
+models/*.joblib
+*.pth
+*.h5
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
