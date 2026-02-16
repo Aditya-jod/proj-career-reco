@@ -1,0 +1,436 @@
+"""
+FastAPI server for Career Path Recommender System.
+Exposes ML models (Career Predictor, University Recommender, Job Recommender) as REST endpoints.
+"""
+
+import logging
+import os
+import sys
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+from typing import List, Optional
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
+from src.data.loader import load_config, load_raw_data
+from src.data.preprocessing import clean_text
+from src.features.build_features import FeatureBuilder
+from src.models.career_predictor import CareerPredictor
+from src.models.university_recommender import UniversityRecommender
+from src.models.career_recommender import CareerRecommender
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="Career Path Recommender API",
+    description="AI-powered career guidance system",
+    version="1.0.0"
+)
+
+# CORS middleware configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change to specific domains in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ==================== Request/Response Models ====================
+
+class StudentProfileRequest(BaseModel):
+    """Request model for student profile assessment."""
+    mathematics_score: int = Field(..., ge=0, le=100)
+    science_score: int = Field(..., ge=0, le=100)
+    language_arts_score: int = Field(..., ge=0, le=100)
+    social_studies_score: int = Field(..., ge=0, le=100)
+    logical_reasoning: int = Field(..., ge=0, le=100)
+    creativity: int = Field(..., ge=0, le=100)
+    communication: int = Field(..., ge=0, le=100)
+    leadership: int = Field(..., ge=0, le=100)
+    social_skills: int = Field(..., ge=0, le=100)
+    skills_text: str = Field(default="")
+    preferred_location: str = Field(default="")
+
+
+class CareerPredictionResponse(BaseModel):
+    """Response model for career predictions."""
+    career_field: str
+    confidence: float
+    alternatives: List[tuple] = []  # [(field, confidence), ...]
+
+
+class UniversityRecommendation(BaseModel):
+    """Single university recommendation."""
+    name: str
+    country: str
+    state: Optional[str] = None
+    district: Optional[str] = None
+    website: str
+    score: float
+
+
+class UniversitiesResponse(BaseModel):
+    """Response model for university recommendations."""
+    universities: List[UniversityRecommendation]
+    total: int
+
+
+class JobRecommendation(BaseModel):
+    """Single job recommendation."""
+    title: str
+    score: float
+
+
+class JobsResponse(BaseModel):
+    """Response model for job recommendations."""
+    jobs: List[JobRecommendation]
+    total: int
+
+
+class RecommendationResponse(BaseModel):
+    """Complete recommendation response."""
+    career: CareerPredictionResponse
+    universities: UniversitiesResponse
+    jobs: JobsResponse
+
+
+# ==================== Global Models (Initialized on Startup) ====================
+
+career_predictor: Optional[CareerPredictor] = None
+university_recommender: Optional[UniversityRecommender] = None
+job_recommender: Optional[CareerRecommender] = None
+job_df = None
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize ML models on server startup."""
+    global career_predictor, university_recommender, job_recommender, job_df
+    
+    logger.info("🚀 Initializing Career Path Recommender API...")
+    
+    try:
+        # Load config and datasets
+        config = load_config()
+        datasets = load_raw_data(config)
+        
+        # Initialize Career Predictor
+        logger.info("Loading Career Predictor...")
+        career_predictor = CareerPredictor()
+        career_predictor.load_or_train(datasets["student_reco"], verbose=False)
+        
+        # Initialize University Recommender
+        logger.info("Loading University Recommender...")
+        feature_builder = FeatureBuilder()
+        university_recommender = UniversityRecommender(
+            feature_builder=feature_builder,
+            indian_df=datasets["indian_colleges"],
+            world_df=datasets["world_universities"],
+            student_df=datasets.get("student_reco"),
+            train_ranker=True,
+        )
+        
+        # Initialize Job Recommender
+        logger.info("Loading Job Recommender...")
+        import numpy as np
+        import pandas as pd
+        from pathlib import Path
+        
+        cache_dir = Path("models/cache")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        job_df_path = cache_dir / "job_df.parquet"
+        job_emb_path = cache_dir / "job_embeddings.npy"
+        
+        if job_df_path.exists() and job_emb_path.exists():
+            job_df = pd.read_parquet(job_df_path)
+            job_embeddings = np.load(job_emb_path)
+        else:
+            job_df = (
+                datasets["job_descriptions"]
+                .drop_duplicates(subset=["Job Title"])
+                .reset_index(drop=True)
+                .copy()
+            )
+            job_df["job_idx"] = job_df.index
+            job_df["content"] = job_df[
+                ["Job Title", "skills", "Job Description", "Responsibilities"]
+            ].fillna("").agg(" ".join, axis=1)
+            
+            job_feature_builder = FeatureBuilder()
+            job_embeddings = job_feature_builder.encode(
+                job_df["content"].tolist(), batch_size=128
+            )
+            job_df.to_parquet(job_df_path, index=False)
+            np.save(job_emb_path, job_embeddings)
+        
+        job_feature_builder = FeatureBuilder()
+        job_recommender = CareerRecommender(
+            job_df=job_df,
+            embedding_matrix=job_embeddings,
+            feature_builder=job_feature_builder,
+        )
+        
+        logger.info("✅ All systems initialized successfully!")
+        
+    except Exception as e:
+        logger.error(f"❌ Startup failed: {str(e)}")
+        raise
+
+
+@app.get("/")
+async def root():
+    """Root endpoint - API status."""
+    return {
+        "status": "online",
+        "message": "Career Path Recommender API is running",
+        "version": "1.0.0"
+    }
+
+
+@app.post("/api/recommend", response_model=RecommendationResponse)
+async def get_recommendations(profile: StudentProfileRequest):
+    """
+    Get complete recommendations (career, universities, jobs) based on student profile.
+    
+    Args:
+        profile: StudentProfileRequest with academic and skill scores
+    
+    Returns:
+        RecommendationResponse with career, university, and job recommendations
+    """
+    if not all([career_predictor, university_recommender, job_recommender, job_df]):
+        raise HTTPException(status_code=503, detail="Models not initialized")
+    
+    try:
+        # Convert request to dict format expected by models
+        user_profile = {
+            "Mathematics_Score": profile.mathematics_score,
+            "Science_Score": profile.science_score,
+            "Language_Arts_Score": profile.language_arts_score,
+            "Social_Studies_Score": profile.social_studies_score,
+            "Logical_Reasoning": profile.logical_reasoning,
+            "Creativity": profile.creativity,
+            "Communication": profile.communication,
+            "Leadership": profile.leadership,
+            "Social_Skills": profile.social_skills,
+            "skills_text": profile.skills_text,
+        }
+        
+        # ==================== Career Prediction ====================
+        predictions = career_predictor.predict_top_k(user_profile, k=3)
+        top_career, confidence = predictions[0]
+        alternatives = [(field, float(conf)) for field, conf in predictions[1:]]
+        
+        career_response = CareerPredictionResponse(
+            career_field=top_career,
+            confidence=float(confidence),
+            alternatives=alternatives
+        )
+        
+        # ==================== University Recommendations ====================
+        query = profile.skills_text or top_career
+        query = clean_text(query)
+        
+        universities_df = university_recommender.recommend(
+            query=top_career,
+            country=profile.preferred_location if profile.preferred_location else None,
+            top_k=10,
+            skills_text=profile.skills_text,
+        )
+        
+        universities_list = []
+        if not universities_df.empty:
+            for _, row in universities_df.iterrows():
+                universities_list.append(
+                    UniversityRecommendation(
+                        name=row.get("name", ""),
+                        country=row.get("country", ""),
+                        state=row.get("State", None),
+                        district=row.get("District", None),
+                        website=row.get("Website", ""),
+                        score=float(row.get("score", 0.0)),
+                    )
+                )
+        
+        universities_response = UniversitiesResponse(
+            universities=universities_list,
+            total=len(universities_list)
+        )
+        
+        # ==================== Job Recommendations ====================
+        job_query = profile.skills_text or top_career
+        job_query = clean_text(job_query)
+        
+        jobs_df = job_recommender.recommend(job_query, top_k=10)
+        
+        jobs_list = []
+        seen = set()
+        if not jobs_df.empty:
+            for _, row in jobs_df.iterrows():
+                job_idx = int(row.get("job_idx", -1))
+                if job_idx >= 0 and job_idx < len(job_df):
+                    title = job_df.loc[job_idx, "Job Title"]
+                    if title not in seen:
+                        seen.add(title)
+                        jobs_list.append(
+                            JobRecommendation(
+                                title=title,
+                                score=float(row.get("score", 0.0))
+                            )
+                        )
+        
+        jobs_response = JobsResponse(
+            jobs=jobs_list[:5],  # Top 5 jobs
+            total=len(jobs_list)
+        )
+        
+        return RecommendationResponse(
+            career=career_response,
+            universities=universities_response,
+            jobs=jobs_response
+        )
+        
+    except Exception as e:
+        logger.error(f"Recommendation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/career-predict", response_model=CareerPredictionResponse)
+async def predict_career(profile: StudentProfileRequest):
+    """Predict career field based on student profile."""
+    if not career_predictor:
+        raise HTTPException(status_code=503, detail="Career predictor not initialized")
+    
+    try:
+        user_profile = {
+            "Mathematics_Score": profile.mathematics_score,
+            "Science_Score": profile.science_score,
+            "Language_Arts_Score": profile.language_arts_score,
+            "Social_Studies_Score": profile.social_studies_score,
+            "Logical_Reasoning": profile.logical_reasoning,
+            "Creativity": profile.creativity,
+            "Communication": profile.communication,
+            "Leadership": profile.leadership,
+            "Social_Skills": profile.social_skills,
+        }
+        
+        predictions = career_predictor.predict_top_k(user_profile, k=3)
+        top_career, confidence = predictions[0]
+        alternatives = [(field, float(conf)) for field, conf in predictions[1:]]
+        
+        return CareerPredictionResponse(
+            career_field=top_career,
+            confidence=float(confidence),
+            alternatives=alternatives
+        )
+    except Exception as e:
+        logger.error(f"Career prediction error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/universities", response_model=UniversitiesResponse)
+async def recommend_universities(
+    query: str,
+    country: Optional[str] = None,
+    top_k: int = 10,
+    skills_text: str = ""
+):
+    """Recommend universities based on career interests and location."""
+    if not university_recommender:
+        raise HTTPException(status_code=503, detail="University recommender not initialized")
+    
+    try:
+        query = clean_text(query)
+        
+        universities_df = university_recommender.recommend(
+            query=query,
+            country=country,
+            top_k=top_k,
+            skills_text=skills_text,
+        )
+        
+        universities_list = []
+        if not universities_df.empty:
+            for _, row in universities_df.iterrows():
+                universities_list.append(
+                    UniversityRecommendation(
+                        name=row.get("name", ""),
+                        country=row.get("country", ""),
+                        state=row.get("State", None),
+                        district=row.get("District", None),
+                        website=row.get("Website", ""),
+                        score=float(row.get("score", 0.0)),
+                    )
+                )
+        
+        return UniversitiesResponse(
+            universities=universities_list,
+            total=len(universities_list)
+        )
+    except Exception as e:
+        logger.error(f"University recommendation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/jobs", response_model=JobsResponse)
+async def recommend_jobs(query: str, top_k: int = 10):
+    """Recommend jobs based on skills and interests."""
+    if not job_recommender or job_df is None:
+        raise HTTPException(status_code=503, detail="Job recommender not initialized")
+    
+    try:
+        query = clean_text(query)
+        
+        jobs_df = job_recommender.recommend(query, top_k=top_k)
+        
+        jobs_list = []
+        seen = set()
+        if not jobs_df.empty:
+            for _, row in jobs_df.iterrows():
+                job_idx = int(row.get("job_idx", -1))
+                if job_idx >= 0 and job_idx < len(job_df):
+                    title = job_df.loc[job_idx, "Job Title"]
+                    if title not in seen:
+                        seen.add(title)
+                        jobs_list.append(
+                            JobRecommendation(
+                                title=title,
+                                score=float(row.get("score", 0.0))
+                            )
+                        )
+        
+        return JobsResponse(
+            jobs=jobs_list[:top_k],
+            total=len(jobs_list)
+        )
+    except Exception as e:
+        logger.error(f"Job recommendation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "models_ready": all([career_predictor, university_recommender, job_recommender])
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    uvicorn.run(
+        "api:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )
