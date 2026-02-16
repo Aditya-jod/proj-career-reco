@@ -23,10 +23,36 @@ const Index = () => {
     skills: string[];
     hobbies: string[];
   }) => {
-    const recs = getRecommendations(data.academics, data.interests, data.skills, data.hobbies);
-    setResults(recs);
-    setShowAssessment(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Default scores for now - AssessmentForm can be enhanced to collect actual scores
+    const scores = {
+      mathematics: 50,
+      science: 50,
+      language_arts: 50,
+      social_studies: 50,
+      logical_reasoning: 50,
+      creativity: 50,
+      communication: 50,
+      leadership: 50,
+      social_skills: 50,
+    };
+
+    const recs = getRecommendations(
+      data.academics,
+      data.interests,
+      data.skills,
+      data.hobbies,
+      scores,
+      "" // preferred location
+    );
+    
+    recs.then((results) => {
+      setResults(results);
+      setShowAssessment(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }).catch((error) => {
+      console.error("Error getting recommendations:", error);
+      setShowAssessment(false);
+    });
   };
 
   const handleReset = () => {
