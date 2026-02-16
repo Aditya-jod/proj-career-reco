@@ -63,7 +63,7 @@ A AI recommendation engine that helps students discover their ideal career path,
 
 ---
 
-## 🚀 **Quick Start**
+## **Quick Start**
 
 ### **Option 1: Automatic (PowerShell on Windows)**
 ```bash
@@ -105,7 +105,7 @@ npm run dev
 
 ---
 
-## 📚 **Documentation**
+## **Documentation**
 
 - **SETUP.md** — Detailed setup guide with troubleshooting
 - **IMPLEMENTATION_SUMMARY.md** — Technical details on backend-frontend connection
@@ -147,51 +147,9 @@ npm run dev
 
 ---
 
-## 📁 **Project Structure**
-
-```
-proj-career-reco/
-├── backend/                    # Python/ML backend
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── main.py        # CLI version
-│   │   │   └── api.py         # FastAPI server (NEW)
-│   │   ├── models/            # ML models
-│   │   ├── features/          # Feature engineering
-│   │   ├── data/              # Data loading
-│   │   └── db/                # Database connections
-│   ├── requirements.txt        # Python dependencies
-│   ├── .env.example            # Environment template
-│   └── .gitignore
-│
-├── frontend/                   # React/TypeScript frontend
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── AssessmentForm.tsx
-│   │   │   ├── CareerResults.tsx
-│   │   │   └── HeroSection.tsx
-│   │   ├── pages/
-│   │   │   └── Index.tsx       # Main page (UPDATED)
-│   │   ├── data/
-│   │   │   └── careerData.ts   # API integration (NEW)
-│   │   └── App.tsx
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── .env.example            # Environment template
-│   └── .gitignore
-│
-├── models/                     # Trained ML models & cache
-├── SETUP.md                    # Detailed setup guide (NEW)
-├── IMPLEMENTATION_SUMMARY.md   # Tech details (NEW)
-├── start.ps1                   # Windows quick start (NEW)
-├── start.sh                    # Mac/Linux quick start (NEW)
-└── README.md                   # This file
-
-```
-
 ---
 
-## 🔌 **Backend-Frontend Connection**
+## **Backend-Frontend Connection**
 
 The system is now fully integrated:
 
@@ -208,7 +166,7 @@ All communication is via REST API with full error handling and fallbacks.
 
 ---
 
-## 🛠️ **Configuration**
+## **Configuration**
 
 ### Backend Environment Variables (`.env`)
 ```env
@@ -229,7 +187,7 @@ See `.env.example` files in both folders for template.
 
 ---
 
-## 🧪 **Testing the Setup**
+## **Testing the Setup**
 
 **Verify backend:**
 ```bash
@@ -248,7 +206,7 @@ fetch('http://localhost:8000/health').then(r => r.json()).then(d => console.log(
 
 ---
 
-## 📚 **Available Commands**
+## **Available Commands**
 
 ### Backend
 ```bash
@@ -277,7 +235,7 @@ bun run build
 
 ---
 
-## 🎯 **Next Steps**
+## **Next Steps**
 
 - [ ] MongoDB local setup for user sessions
 - [ ] Authentication & user accounts
@@ -305,10 +263,3 @@ Contributions welcome! Please:
 This project is open source. See LICENSE file for details.
 
 ---
-
-## 👨‍💻 **Author**
-
-Built with ❤️ as an AI-powered career guidance system.
-
-For questions or issues, check SETUP.md or refer to IMPLEMENTATION_SUMMARY.md for technical details.
-````
