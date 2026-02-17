@@ -13,7 +13,7 @@ This backend powers the AI-driven recommendation engine for the Career Path Reco
 
 - Python 3.8+
 - FastAPI (API framework)
-- Scikit-Learn (ML)
+- Scikit-Learn (Machine Learning)
 - Pandas, NumPy (Data processing)
 - NLTK, SpaCy (NLP)
 - Joblib (Model serialization)
