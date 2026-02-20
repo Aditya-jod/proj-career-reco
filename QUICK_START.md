@@ -236,4 +236,3 @@ Then visit: http://localhost:8080
 - ✓ **Type safety** (TypeScript throughout)
 - ✓ **Ready to deploy** (environment-based config)
 
-**You're all set!**
