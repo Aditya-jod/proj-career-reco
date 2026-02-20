@@ -237,4 +237,3 @@ Then visit: http://localhost:8080
 - ✓ **Ready to deploy** (environment-based config)
 
 **You're all set!**
-
