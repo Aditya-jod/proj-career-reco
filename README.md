@@ -168,21 +168,6 @@ All communication is via REST API with full error handling and fallbacks.
 
 ## **Configuration**
 
-### Backend Environment Variables (`.env`)
-```env
-MONGODB_URI=mongodb://localhost:27017/
-MONGODB_DB_NAME=career_recommender
-API_HOST=0.0.0.0
-API_PORT=8000
-APP_ENV=development
-```
-
-### Frontend Environment Variables (`.env`)
-```env
-VITE_API_URL=http://localhost:8000
-VITE_ENV=development
-```
-
 See `.env.example` files in both folders for template.
 
 ---
