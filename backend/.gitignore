@@ -36,7 +36,7 @@ logs/
 *.db
 *.sqlite
 *.sqlite3
-MongoDB/mongodb.py
+data/MongoDB/mongodb.py
 
 # OS
 .DS_Store
