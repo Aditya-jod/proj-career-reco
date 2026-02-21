@@ -143,7 +143,9 @@ def run_pipeline():
         profile = collect_user_profile()
 
         # ---------------- Career Prediction ----------------
-        predictions = career_predictor.predict_top_k(profile, k=3)
+        predictions = career_predictor.predict_top_k(
+            profile, k=3, skills_text=profile.get("skills_text", "")
+        )
         top_career, confidence = predictions[0]
 
         print(f"\n🔮 Predicted Career Field: {top_career} ({confidence:.2%})")
