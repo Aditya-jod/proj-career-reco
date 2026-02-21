@@ -44,5 +44,6 @@ def country_pattern(value: str) -> str:
     normalized = normalize_country(value)
     aliases = COUNTRY_ALIASES.get(normalized)
     if aliases:
-        return "|".join(re.escape(alias) for alias in aliases)
-    return re.escape(value)
+        # Use word boundaries so "us" does not match inside "australia"
+        return "|".join(r"\b" + re.escape(alias) + r"\b" for alias in aliases)
+    return r"\b" + re.escape(value) + r"\b"

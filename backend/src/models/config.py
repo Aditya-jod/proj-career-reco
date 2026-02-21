@@ -20,8 +20,11 @@ FEATURE_COLUMNS = [
 TARGET_COLUMN = "Primary_Career_Recommendation"
 
 # Random Forest hyperparameters
-RF_N_ESTIMATORS = 100
+RF_N_ESTIMATORS = 300
 RF_RANDOM_STATE = 42
+RF_MAX_DEPTH = None          # let trees grow fully
+RF_MIN_SAMPLES_SPLIT = 5
+RF_CLASS_WEIGHT = "balanced" # compensate for any class imbalance
 
 # Train-test split ratio
 TEST_SIZE = 0.2

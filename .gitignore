@@ -1,0 +1,56 @@
+# ── ML Model Artifacts ───────────────────────────────────────────
+# Auto-generated — retrain with scripts/retrain_models.py
+models/*.pkl
+models/*.npy
+models/*.joblib
+models/*.h5
+models/*.pth
+models/cache/
+
+# backend sub-folder duplicates (kept in sync)
+backend/models/*.pkl
+backend/models/*.npy
+backend/models/*.joblib
+backend/models/cache/
+
+# ── Python ────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# ── Environments ─────────────────────────────────────────────────
+.env
+backend/.env
+frontend/.env
+venv/
+env/
+.venv/
+backend/venv/
+
+# ── Notebooks ────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Logs ─────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Database ─────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+backend/data/MongoDB/mongodb.py
+
+# ── OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+
+# ── Frontend build ───────────────────────────────────────────────
+frontend/dist/
+frontend/node_modules/
