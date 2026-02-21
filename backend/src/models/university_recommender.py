@@ -158,12 +158,34 @@ class UniversityRecommender:
                 preferred_country=country,
                 preferred_state=state,
             )
-            ranked = self.ranker.rank(candidate_df, context, top_k=top_k)
+
+            # Get ML scores for all candidates
+            feature_df = self.ranker.matrix_builder.build(candidate_df, context)
+            feature_df = feature_df[self.ranker.feature_columns]
+            ml_scores = self.ranker.model.predict(feature_df)
+
+            # Get BERT cosine similarity scores for the same candidates
+            full_query = " ".join(part for part in [query, skills_text] if part)
+            query_vec = self.feature_builder.encode(full_query)
+            candidate_embeddings = self.embedding_matrix[candidate_df.index]
+            cos_scores = cosine_similarity(query_vec, candidate_embeddings).flatten()
+
+            # Normalise both to [0, 1] then blend equally
+            def _norm(arr):
+                lo, hi = arr.min(), arr.max()
+                return (arr - lo) / (hi - lo + 1e-9)
+
+            combined = 0.5 * _norm(ml_scores) + 0.5 * _norm(cos_scores)
+
+            ranked = candidate_df.copy()
+            ranked["score"] = combined
+            ranked = ranked.sort_values("score", ascending=False).head(top_k)
+
             if pattern and not country_enforced:
                 filtered = ranked[ranked["country"].str.contains(pattern, case=False, na=False)]
                 if not filtered.empty:
                     ranked = filtered
-            ranked = ranked.rename(columns={"ml_score": "score"})
+
             return ranked[["name", "country", "State", "District", "Website", "score"]].reset_index(
                 drop=True
             )
