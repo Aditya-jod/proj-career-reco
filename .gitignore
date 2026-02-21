@@ -21,14 +21,28 @@ __pycache__/
 dist/
 build/
 
-# ── Environments ─────────────────────────────────────────────────
+# ── Environments & Secrets ───────────────────────────────────────
+# Never commit real .env files
 .env
+.env.local
+.env.*.local
+**/.env
 backend/.env
 frontend/.env
+
+# Virtual environments
 venv/
 env/
 .venv/
 backend/venv/
+frontend/node_modules/
+
+# Auth / keys
+*.pem
+*.key
+*.cert
+*.p12
+secrets/
 
 # ── Notebooks ────────────────────────────────────────────────────
 .ipynb_checkpoints/

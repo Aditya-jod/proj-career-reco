@@ -11,7 +11,7 @@ from pymongo.database import Database
 def _get_mongo_uri() -> str:
     uri = os.getenv("MONGODB_URI")
     if not uri:
-        uri = "mongodb://localhost:27017/"
+        uri = "mongodb://0.0.0.0:44551/"
     return uri
 
 
