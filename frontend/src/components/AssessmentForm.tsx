@@ -1,6 +1,18 @@
 import { useState } from "react";
-import { ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
+import { ChevronRight, ChevronLeft, Sparkles, MapPin } from "lucide-react";
 import { interestOptions, skillOptions, hobbyOptions } from "@/data/careerData";
+
+interface ScoreFields {
+  mathematics: number;
+  science: number;
+  language_arts: number;
+  social_studies: number;
+  logical_reasoning: number;
+  creativity: number;
+  communication: number;
+  leadership: number;
+  social_skills: number;
+}
 
 interface AssessmentFormProps {
   onSubmit: (data: {
@@ -8,6 +20,8 @@ interface AssessmentFormProps {
     interests: string[];
     skills: string[];
     hobbies: string[];
+    scores: ScoreFields;
+    preferredLocation: string;
   }) => void;
 }
 
@@ -18,12 +32,42 @@ const academicStreams = [
   "Arts / Humanities",
 ];
 
+const defaultScores: ScoreFields = {
+  mathematics: 70,
+  science: 70,
+  language_arts: 70,
+  social_studies: 70,
+  logical_reasoning: 70,
+  creativity: 70,
+  communication: 70,
+  leadership: 70,
+  social_skills: 70,
+};
+
+const scoreLabels: { key: keyof ScoreFields; label: string; emoji: string }[] = [
+  { key: "mathematics", label: "Mathematics", emoji: "🔢" },
+  { key: "science", label: "Science", emoji: "🔬" },
+  { key: "language_arts", label: "Language Arts", emoji: "📖" },
+  { key: "social_studies", label: "Social Studies", emoji: "🌍" },
+  { key: "logical_reasoning", label: "Logical Reasoning", emoji: "🧩" },
+  { key: "creativity", label: "Creativity", emoji: "🎨" },
+  { key: "communication", label: "Communication", emoji: "💬" },
+  { key: "leadership", label: "Leadership", emoji: "👥" },
+  { key: "social_skills", label: "Social Skills", emoji: "🤝" },
+];
+
 const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
   const [step, setStep] = useState(0);
   const [academics, setAcademics] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [hobbies, setHobbies] = useState<string[]>([]);
+  const [scores, setScores] = useState<ScoreFields>(defaultScores);
+  const [preferredLocation, setPreferredLocation] = useState("");
+
+  const setScore = (key: keyof ScoreFields, value: number) => {
+    setScores((prev) => ({ ...prev, [key]: value }));
+  };
 
   const toggleItem = (
     list: string[],
@@ -122,6 +166,55 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
       ),
       isValid: () => hobbies.length >= 1,
     },
+    {
+      title: "Scores & Location",
+      subtitle: "Rate your strengths (0–100) and enter your preferred study location",
+      content: (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+            {scoreLabels.map(({ key, label, emoji }) => (
+              <div key={key}>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-medium text-foreground">
+                    {emoji} {label}
+                  </span>
+                  <span className="text-sm font-bold text-primary w-8 text-right">
+                    {scores[key]}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={scores[key]}
+                  onChange={(e) => setScore(key, Number(e.target.value))}
+                  className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-primary bg-border"
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4">
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              Preferred Study Location{" "}
+              <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. India, United States, Germany…"
+              value={preferredLocation}
+              onChange={(e) => setPreferredLocation(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground
+                focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary
+                placeholder:text-muted-foreground transition-all"
+            />
+          </div>
+        </div>
+      ),
+      isValid: () => true, // always valid — scores have defaults, location is optional
+    },
   ];
 
   const currentStep = steps[step];
@@ -168,7 +261,7 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
               <button
                 disabled={!currentStep.isValid()}
                 onClick={() =>
-                  onSubmit({ academics, interests, skills, hobbies })
+                  onSubmit({ academics, interests, skills, hobbies, scores, preferredLocation })
                 }
                 className="flex items-center gap-2 px-6 py-3 bg-accent text-accent-foreground font-semibold rounded-xl
                   hover:shadow-lg disabled:opacity-40 transition-all duration-200 hover:scale-105"
