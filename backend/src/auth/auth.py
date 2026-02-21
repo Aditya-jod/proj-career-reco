@@ -7,22 +7,20 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 # ── Config ────────────────────────────────────────────────────────────────────
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-this-in-production")
-ALGORITHM  = os.getenv("JWT_ALGORITHM",  "HS256")
+SECRET_KEY   = os.getenv("JWT_SECRET_KEY", "change-this-in-production")
+ALGORITHM    = os.getenv("JWT_ALGORITHM",  "HS256")
 EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "48"))
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # ── Password helpers ──────────────────────────────────────────────────────────
 def hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
+    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 # ── JWT helpers ───────────────────────────────────────────────────────────────
 def create_access_token(user_id: str, email: str) -> str:
