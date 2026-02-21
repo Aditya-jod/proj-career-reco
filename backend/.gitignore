@@ -25,6 +25,8 @@ models/cache/
 models/*.pkl
 models/*.npy
 models/*.joblib
+models/*.parquet
+models/*.feather
 *.pth
 *.h5
 

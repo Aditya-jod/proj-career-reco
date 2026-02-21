@@ -1,3 +1,7 @@
+# Build info
+*.tsbuildinfo
+tsconfig.*.tsbuildinfo
+
 # Vite
 dist/
 dist-ssr/

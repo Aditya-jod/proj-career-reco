@@ -67,4 +67,14 @@ Thumbs.db
 
 # ── Frontend build ───────────────────────────────────────────────
 frontend/dist/
-frontend/node_modules/
+frontend/node_modules/frontend/tsconfig.*.tsbuildinfo
+*.tsbuildinfo
+
+# ── Data / large binary files ────────────────────────────────
+*.parquet
+*.arrow
+*.feather
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
