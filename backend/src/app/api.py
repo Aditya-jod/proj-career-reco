@@ -8,9 +8,15 @@ import os
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Load .env before anything else
+_env_path = Path(__file__).resolve().parents[2] / ".env"
+load_dotenv(dotenv_path=_env_path)
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -21,6 +27,8 @@ from src.features.build_features import FeatureBuilder
 from src.models.career_predictor import CareerPredictor
 from src.models.university_recommender import UniversityRecommender
 from src.models.career_recommender import CareerRecommender
+from src.auth.auth import hash_password, verify_password, create_access_token
+from src.db.mongo import get_database
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -99,6 +107,25 @@ class RecommendationResponse(BaseModel):
     career: CareerPredictionResponse
     universities: UniversitiesResponse
     jobs: JobsResponse
+
+
+# ── Auth Models ───────────────────────────────────────────────────────────────
+
+class RegisterRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    email: str = Field(...)
+    password: str = Field(..., min_length=6)
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(...)
+    password: str = Field(...)
+
+
+class AuthResponse(BaseModel):
+    token: str
+    userId: str
+    name: str
 
 
 # ==================== Global Models (Initialized on Startup) ====================
@@ -427,6 +454,56 @@ async def health_check():
         "status": "healthy",
         "models_ready": all([career_predictor, university_recommender, job_recommender])
     }
+
+
+# ── Auth Endpoints ────────────────────────────────────────────────────────────
+
+@app.post("/auth/register", response_model=AuthResponse, tags=["auth"])
+async def register(body: RegisterRequest):
+    """Register a new user. Returns a JWT token."""
+    try:
+        db = get_database()
+        users = db["users"]
+
+        existing = users.find_one({"email": body.email.lower()})
+        if existing:
+            raise HTTPException(status_code=409, detail="Email already registered")
+
+        hashed = hash_password(body.password)
+        result = users.insert_one({
+            "name": body.name,
+            "email": body.email.lower(),
+            "password_hash": hashed,
+        })
+        user_id = str(result.inserted_id)
+        token = create_access_token(user_id, body.email.lower())
+        return AuthResponse(token=token, userId=user_id, name=body.name)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Register error: {e}")
+        raise HTTPException(status_code=500, detail="Registration failed")
+
+
+@app.post("/auth/login", response_model=AuthResponse, tags=["auth"])
+async def login(body: LoginRequest):
+    """Login with email and password. Returns a JWT token."""
+    try:
+        db = get_database()
+        users = db["users"]
+
+        user = users.find_one({"email": body.email.lower()})
+        if not user or not verify_password(body.password, user["password_hash"]):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+
+        user_id = str(user["_id"])
+        token = create_access_token(user_id, body.email.lower())
+        return AuthResponse(token=token, userId=user_id, name=user.get("name", ""))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        raise HTTPException(status_code=500, detail="Login failed")
 
 
 if __name__ == "__main__":
