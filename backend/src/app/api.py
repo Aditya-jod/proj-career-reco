@@ -224,7 +224,9 @@ async def get_recommendations(profile: StudentProfileRequest):
         }
         
         # ==================== Career Prediction ====================
-        predictions = career_predictor.predict_top_k(user_profile, k=3)
+        predictions = career_predictor.predict_top_k(
+            user_profile, k=3, skills_text=profile.skills_text or ""
+        )
         top_career, confidence = predictions[0]
         alternatives = [(field, float(conf)) for field, conf in predictions[1:]]
         
@@ -321,7 +323,10 @@ async def predict_career(profile: StudentProfileRequest):
             "Social_Skills": profile.social_skills,
         }
         
-        predictions = career_predictor.predict_top_k(user_profile, k=3)
+        skills_text = getattr(profile, "skills_text", "") or ""
+        predictions = career_predictor.predict_top_k(
+            user_profile, k=3, skills_text=skills_text
+        )
         top_career, confidence = predictions[0]
         alternatives = [(field, float(conf)) for field, conf in predictions[1:]]
         
