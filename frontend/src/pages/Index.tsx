@@ -1,8 +1,10 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import HeroSection from "@/components/HeroSection";
 import AssessmentForm from "@/components/AssessmentForm";
 import CareerResults from "@/components/CareerResults";
 import { getRecommendations, type CareerPath, type University, type Job } from "@/data/careerData";
+import { useAuth } from "@/context/AuthContext";
 
 interface AppResults {
   careers: CareerPath[];
@@ -11,6 +13,8 @@ interface AppResults {
 }
 
 const Index = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [results, setResults] = useState<AppResults | null>(null);
   const [showAssessment, setShowAssessment] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +22,10 @@ const Index = () => {
   const assessmentRef = useRef<HTMLDivElement>(null);
 
   const handleStart = () => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: "/" } });
+      return;
+    }
     setShowAssessment(true);
     setResults(null);
     setApiError(null);
