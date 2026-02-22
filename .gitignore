@@ -30,6 +30,9 @@ build/
 backend/.env
 frontend/.env
 
+# Config files that contain local paths or secrets
+backend/config/config.yaml
+
 # Virtual environments
 venv/
 env/
@@ -69,6 +72,7 @@ Thumbs.db
 frontend/dist/
 frontend/node_modules/frontend/tsconfig.*.tsbuildinfo
 *.tsbuildinfo
+bun.lock
 
 # ── Data / large binary files ────────────────────────────────
 *.parquet
