@@ -7,6 +7,23 @@ import yaml
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "config.yaml"
 
+# Anchor used to resolve relative dataset paths in config.yaml.
+# config.yaml lives at  backend/config/config.yaml  and its paths start with
+# "../Dataset/…" — meaning they are relative to the *project root*
+# (proj-career-reco/), NOT the current working directory.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent  # …/proj-career-reco
+
+
+def _resolve_path(raw: str) -> Path:
+    """Return an absolute Path for *raw*.
+
+    If *raw* is already absolute, return it unchanged.
+    Otherwise resolve it against _PROJECT_ROOT so the server can be launched
+    from any working directory.
+    """
+    p = Path(raw)
+    return p if p.is_absolute() else (_PROJECT_ROOT / raw).resolve()
+
 def load_config(config_path: str | None = None):
     """
     Load configuration from YAML file.
@@ -33,18 +50,18 @@ def load_raw_data(config):
         print("Loading datasets...")
         
         # 1. Career Path Data
-        datasets['career_path'] = pd.read_csv(datasets_config['career_path'])
+        datasets['career_path'] = pd.read_csv(_resolve_path(datasets_config['career_path']))
         datasets['career_path'].columns = datasets['career_path'].columns.str.strip()
         print(f"Loaded Career Path Data: {datasets['career_path'].shape}")
 
-        # 2. Student/Recommendation Data 
-        datasets['student_reco'] = pd.read_csv(datasets_config['student_reco'])
+        # 2. Student/Recommendation Data
+        datasets['student_reco'] = pd.read_csv(_resolve_path(datasets_config['student_reco']))
         datasets['student_reco'].columns = datasets['student_reco'].columns.str.strip()
         print(f"Loaded Student Reco Data: {datasets['student_reco'].shape}")
-        
+
         # Load the second student dataset
         try:
-            datasets['student_reco_2'] = pd.read_csv(datasets_config['student_reco_2'])
+            datasets['student_reco_2'] = pd.read_csv(_resolve_path(datasets_config['student_reco_2']))
             datasets['student_reco_2'].columns = datasets['student_reco_2'].columns.str.strip()
             print(f"Loaded Student Reco Data 2: {datasets['student_reco_2'].shape}")
         except Exception as e:
@@ -52,12 +69,12 @@ def load_raw_data(config):
             datasets['student_reco_2'] = None
 
         # 3. Job Descriptions
-        datasets['job_descriptions'] = pd.read_csv(datasets_config['job_descriptions'])
+        datasets['job_descriptions'] = pd.read_csv(_resolve_path(datasets_config['job_descriptions']))
         print(f"Loaded Job Descriptions: {datasets['job_descriptions'].shape}")
 
         # 4. Colleges & Universities Data
-        datasets['indian_colleges'] = pd.read_csv(datasets_config['indian_colleges'])
-        datasets['world_universities'] = pd.read_csv(datasets_config['world_universities'])
+        datasets['indian_colleges'] = pd.read_csv(_resolve_path(datasets_config['indian_colleges']))
+        datasets['world_universities'] = pd.read_csv(_resolve_path(datasets_config['world_universities']))
         
         print("All primary datasets loaded successfully.")
         return datasets
