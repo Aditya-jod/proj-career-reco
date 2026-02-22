@@ -14,11 +14,13 @@ const Index = () => {
   const [results, setResults] = useState<AppResults | null>(null);
   const [showAssessment, setShowAssessment] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const assessmentRef = useRef<HTMLDivElement>(null);
 
   const handleStart = () => {
     setShowAssessment(true);
     setResults(null);
+    setApiError(null);
     setTimeout(() => {
       assessmentRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
@@ -60,8 +62,10 @@ const Index = () => {
         setIsLoading(false);
         window.scrollTo({ top: 0, behavior: "smooth" });
       })
-      .catch((error) => {
-        console.error("Error getting recommendations:", error);
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error ? error.message : "An unexpected error occurred.";
+        setApiError(`Could not retrieve recommendations: ${message}`);
         setShowAssessment(false);
         setIsLoading(false);
       });
@@ -76,6 +80,20 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {!results && <HeroSection onStart={handleStart} />}
+
+      {apiError && (
+        <section className="py-6 px-4">
+          <div className="max-w-xl mx-auto rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
+            <strong>Error: </strong>{apiError}
+            <button
+              className="ml-4 underline text-xs"
+              onClick={() => { setApiError(null); setShowAssessment(true); }}
+            >
+              Try again
+            </button>
+          </div>
+        </section>
+      )}
 
       {showAssessment && !results && (
         <div ref={assessmentRef}>
