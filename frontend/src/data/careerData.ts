@@ -166,8 +166,6 @@ export async function getRecommendations(
       preferred_location: preferredLocation,
     };
 
-    console.log("📤 Sending profile to backend:", profile);
-
     const response = await fetch(`${API_BASE_URL}/api/recommend`, {
       method: "POST",
       headers: {
@@ -182,14 +180,17 @@ export async function getRecommendations(
 
     const result: RecommendationResult = await response.json();
 
-    console.log("📥 Received result from backend:", result);
-
     // Transform backend response into CareerPath format for frontend
     return transformToCareerPaths(result);
   } catch (error) {
-    console.error("Failed to get recommendations:", error);
-    // Fallback to mock data if API fails
-    return getMockRecommendations(academics, interests, skills);
+    // Network errors (server unreachable) → fall back to mock data with a warning.
+    // Application-level errors (4xx/5xx already thrown above) → re-throw so the
+    // caller can show the user a meaningful error message.
+    if (error instanceof TypeError) {
+      console.warn("Backend unreachable — using mock recommendations.");
+      return getMockRecommendations(academics, interests, skills);
+    }
+    throw error;
   }
 }
 
