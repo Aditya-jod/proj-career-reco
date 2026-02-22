@@ -77,14 +77,14 @@ class EmbeddingCache:
     def load_or_build(self, texts: List[str]) -> np.ndarray:
         try:
             if os.path.exists(self.cache_path):
-                print("⚡ Loading cached university embeddings...")
+                print("[cache] Loading cached university embeddings...")
                 return np.load(self.cache_path)
 
-            print("🚀 Computing university embeddings (one-time)...")
+            print("[cache] Computing university embeddings (one-time, may take a moment)...")
             embeddings = self.feature_builder.encode(texts)
             os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
             np.save(self.cache_path, embeddings)
-            print("✅ Embeddings cached")
+            print("[cache] Embeddings saved to disk.")
             return embeddings
         except Exception as exc:
             raise RuntimeError("Unable to load or build university embeddings") from exc
@@ -144,9 +144,7 @@ class UniversityRecommender:
                 candidate_df["country"].str.contains(pattern, case=False, na=False)
             ]
             if filtered_candidates.empty:
-                print(
-                    "⚠️ No universities found for the requested country; showing global matches instead."
-                )
+                print("[info] No universities found for the requested country; showing global matches instead.")
             else:
                 candidate_df = filtered_candidates
                 country_enforced = True
@@ -203,9 +201,7 @@ class UniversityRecommender:
             pattern = country_pattern(country)
             filtered = results[results["country"].str.contains(pattern, case=False, na=False)]
             if filtered.empty:
-                print(
-                    "⚠️ No universities found for the requested country; showing global matches instead."
-                )
+                print("[info] No universities found for the requested country; showing global matches instead.")
             else:
                 results = filtered
 
