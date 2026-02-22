@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -504,6 +505,7 @@ async def register(body: RegisterRequest):
             "name": body.name,
             "email": body.email.lower(),
             "password_hash": hashed,
+            "created_at": datetime.now(timezone.utc),
         })
         user_id = str(result.inserted_id)
         token = create_access_token(user_id, body.email.lower())
