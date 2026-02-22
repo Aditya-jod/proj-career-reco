@@ -6,20 +6,21 @@ Exposes ML models (Career Predictor, University Recommender, Job Recommender) as
 import logging
 import os
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any, List, Optional
 
 from dotenv import load_dotenv
 
-# Load .env before anything else
+# Load .env before anything else so all os.getenv calls below pick it up
 _env_path = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(dotenv_path=_env_path)
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional
+from pydantic import BaseModel, Field
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))  
 
 from src.data.loader import load_config, load_raw_data
 from src.data.preprocessing import clean_text
@@ -28,27 +29,134 @@ from src.models.career_predictor import CareerPredictor
 from src.models.university_recommender import UniversityRecommender
 from src.models.career_recommender import CareerRecommender
 from src.auth.auth import hash_password, verify_password, create_access_token
-from src.db.mongo import get_database
+from src.db.mongo import get_db, close_db
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
+# ---------------------------------------------------------------------------
+# CORS — read allowed origins from env (comma-separated).
+# Falls back to localhost dev servers so local dev works without .env.
+# Example: ALLOWED_ORIGINS=https://myapp.com,https://www.myapp.com
+# ---------------------------------------------------------------------------
+_raw_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5173,http://localhost:8080,http://localhost:3000",
+)
+ALLOWED_ORIGINS: List[str] = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
+# ---------------------------------------------------------------------------
+# Global model state — populated during lifespan startup
+# ---------------------------------------------------------------------------
+career_predictor: Optional[CareerPredictor] = None
+university_recommender: Optional[UniversityRecommender] = None
+job_recommender: Optional[CareerRecommender] = None
+job_df: Any = None          # pd.DataFrame — typed as Any to avoid import at module scope
+_models_ready: bool = False  # False until all models are loaded; health endpoint uses this
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    """App lifespan: initialize all ML models and DB on startup, clean up on shutdown."""
+    global career_predictor, university_recommender, job_recommender, job_df, _models_ready
+
+    logger.info("Starting Career Path Recommender API…")
+    try:
+        import numpy as np
+        import pandas as pd
+
+        # ── Load config & datasets ──────────────────────────────────────────
+        config = load_config()
+        datasets = load_raw_data(config)
+
+        # ── Career Predictor ────────────────────────────────────────────────
+        logger.info("Loading Career Predictor…")
+        career_predictor = CareerPredictor()
+        career_predictor.load_or_train(datasets["student_reco"], verbose=False)
+
+        # ── University Recommender ──────────────────────────────────────────
+        logger.info("Loading University Recommender…")
+        feature_builder = FeatureBuilder()
+        university_recommender = UniversityRecommender(
+            feature_builder=feature_builder,
+            indian_df=datasets["indian_colleges"],
+            world_df=datasets["world_universities"],
+            student_df=datasets.get("student_reco"),
+            train_ranker=True,
+        )
+
+        # ── Job Recommender ─────────────────────────────────────────────────
+        logger.info("Loading Job Recommender…")
+        cache_dir = Path("models/cache")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        job_df_path = cache_dir / "job_df.parquet"
+        job_emb_path = cache_dir / "job_embeddings.npy"
+
+        if job_df_path.exists() and job_emb_path.exists():
+            job_df = pd.read_parquet(job_df_path)
+            job_embeddings = np.load(job_emb_path)
+        else:
+            job_df = (
+                datasets["job_descriptions"]
+                .drop_duplicates(subset=["Job Title"])
+                .reset_index(drop=True)
+                .copy()
+            )
+            job_df["job_idx"] = job_df.index
+            job_df["content"] = (
+                job_df[["Job Title", "skills", "Job Description", "Responsibilities"]]
+                .fillna("")
+                .agg(" ".join, axis=1)
+            )
+            job_feature_builder = FeatureBuilder()
+            job_embeddings = job_feature_builder.encode(
+                job_df["content"].tolist(), batch_size=128
+            )
+            job_df.to_parquet(job_df_path, index=False)
+            np.save(job_emb_path, job_embeddings)
+
+        job_feature_builder = FeatureBuilder()
+        job_recommender = CareerRecommender(
+            job_df=job_df,
+            embedding_matrix=job_embeddings,
+            feature_builder=job_feature_builder,
+        )
+
+        _models_ready = True
+        logger.info("All systems initialized successfully.")
+
+    except Exception as exc:
+        logger.error("Startup failed: %s", exc, exc_info=True)
+        raise
+
+    yield  # ── application runs ────────────────────────────────────────────
+
+    # ── Shutdown ─────────────────────────────────────────────────────────────
+    logger.info("Shutting down — closing MongoDB connection…")
+    close_db()
+
+
+# ---------------------------------------------------------------------------
+# FastAPI application
+# ---------------------------------------------------------------------------
 app = FastAPI(
     title="Career Path Recommender API",
     description="AI-powered career guidance system",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
-# CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change to specific domains in production
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ==================== Request/Response Models ====================
 
@@ -71,7 +179,9 @@ class CareerPredictionResponse(BaseModel):
     """Response model for career predictions."""
     career_field: str
     confidence: float
-    alternatives: List[tuple] = []  # [(field, confidence), ...]
+    # Each element is [field_name, confidence_score] — using List[List] for
+    # JSON-safe serialization (Pydantic cannot serialize bare Python tuples).
+    alternatives: List[List[Any]] = []
 
 
 class UniversityRecommendation(BaseModel):
@@ -128,89 +238,6 @@ class AuthResponse(BaseModel):
     name: str
 
 
-# ==================== Global Models (Initialized on Startup) ====================
-
-career_predictor: Optional[CareerPredictor] = None
-university_recommender: Optional[UniversityRecommender] = None
-job_recommender: Optional[CareerRecommender] = None
-job_df = None
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize ML models on server startup."""
-    global career_predictor, university_recommender, job_recommender, job_df
-    
-    logger.info("🚀 Initializing Career Path Recommender API...")
-    
-    try:
-        # Load config and datasets
-        config = load_config()
-        datasets = load_raw_data(config)
-        
-        # Initialize Career Predictor
-        logger.info("Loading Career Predictor...")
-        career_predictor = CareerPredictor()
-        career_predictor.load_or_train(datasets["student_reco"], verbose=False)
-        
-        # Initialize University Recommender
-        logger.info("Loading University Recommender...")
-        feature_builder = FeatureBuilder()
-        university_recommender = UniversityRecommender(
-            feature_builder=feature_builder,
-            indian_df=datasets["indian_colleges"],
-            world_df=datasets["world_universities"],
-            student_df=datasets.get("student_reco"),
-            train_ranker=True,
-        )
-        
-        # Initialize Job Recommender
-        logger.info("Loading Job Recommender...")
-        import numpy as np
-        import pandas as pd
-        from pathlib import Path
-        
-        cache_dir = Path("models/cache")
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        job_df_path = cache_dir / "job_df.parquet"
-        job_emb_path = cache_dir / "job_embeddings.npy"
-        
-        if job_df_path.exists() and job_emb_path.exists():
-            job_df = pd.read_parquet(job_df_path)
-            job_embeddings = np.load(job_emb_path)
-        else:
-            job_df = (
-                datasets["job_descriptions"]
-                .drop_duplicates(subset=["Job Title"])
-                .reset_index(drop=True)
-                .copy()
-            )
-            job_df["job_idx"] = job_df.index
-            job_df["content"] = job_df[
-                ["Job Title", "skills", "Job Description", "Responsibilities"]
-            ].fillna("").agg(" ".join, axis=1)
-            
-            job_feature_builder = FeatureBuilder()
-            job_embeddings = job_feature_builder.encode(
-                job_df["content"].tolist(), batch_size=128
-            )
-            job_df.to_parquet(job_df_path, index=False)
-            np.save(job_emb_path, job_embeddings)
-        
-        job_feature_builder = FeatureBuilder()
-        job_recommender = CareerRecommender(
-            job_df=job_df,
-            embedding_matrix=job_embeddings,
-            feature_builder=job_feature_builder,
-        )
-        
-        logger.info("✅ All systems initialized successfully!")
-        
-    except Exception as e:
-        logger.error(f"❌ Startup failed: {str(e)}")
-        raise
-
-
 @app.get("/")
 async def root():
     """Root endpoint - API status."""
@@ -255,12 +282,12 @@ async def get_recommendations(profile: StudentProfileRequest):
             user_profile, k=3, skills_text=profile.skills_text or ""
         )
         top_career, confidence = predictions[0]
-        alternatives = [(field, float(conf)) for field, conf in predictions[1:]]
-        
+        alternatives = [[field, float(conf)] for field, conf in predictions[1:]]
+
         career_response = CareerPredictionResponse(
             career_field=top_career,
             confidence=float(confidence),
-            alternatives=alternatives
+            alternatives=alternatives,
         )
         
         # ==================== University Recommendations ====================
@@ -355,12 +382,12 @@ async def predict_career(profile: StudentProfileRequest):
             user_profile, k=3, skills_text=skills_text
         )
         top_career, confidence = predictions[0]
-        alternatives = [(field, float(conf)) for field, conf in predictions[1:]]
-        
+        alternatives = [[field, float(conf)] for field, conf in predictions[1:]]
+
         return CareerPredictionResponse(
             career_field=top_career,
             confidence=float(confidence),
-            alternatives=alternatives
+            alternatives=alternatives,
         )
     except Exception as e:
         logger.error(f"Career prediction error: {str(e)}")
@@ -449,11 +476,14 @@ async def recommend_jobs(query: str, top_k: int = 10):
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
-    return {
-        "status": "healthy",
-        "models_ready": all([career_predictor, university_recommender, job_recommender])
-    }
+    """Health check endpoint. Returns 503 while models are still initializing."""
+    ready = _models_ready and all([career_predictor, university_recommender, job_recommender])
+    if not ready:
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "starting", "models_ready": False},
+        )
+    return {"status": "healthy", "models_ready": True}
 
 
 # ── Auth Endpoints ────────────────────────────────────────────────────────────
@@ -462,7 +492,7 @@ async def health_check():
 async def register(body: RegisterRequest):
     """Register a new user. Returns a JWT token."""
     try:
-        db = get_database()
+        db = get_db()
         users = db["users"]
 
         existing = users.find_one({"email": body.email.lower()})
@@ -489,7 +519,7 @@ async def register(body: RegisterRequest):
 async def login(body: LoginRequest):
     """Login with email and password. Returns a JWT token."""
     try:
-        db = get_database()
+        db = get_db()
         users = db["users"]
 
         user = users.find_one({"email": body.email.lower()})
