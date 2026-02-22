@@ -16,7 +16,13 @@ export interface CareerPath {
   avgSalary: string;
   growth: string;
   skills: string[];
-  pathway: { title: string; description: string }[];
+  pathway: { stage: string; detail: string }[];
+}
+
+export interface RecommendationResponse {
+  careers: CareerPath[];
+  universities: University[];
+  jobs: Job[];
 }
 
 export interface University {
@@ -140,7 +146,7 @@ export async function getRecommendations(
     social_skills: number;
   },
   preferredLocation: string
-): Promise<CareerPath[]> {
+): Promise<RecommendationResponse> {
   try {
     // Combine interests, skills, and hobbies into a single text description
     const skillsText = [...interests, ...skills, ...hobbies].join(", ");
@@ -187,10 +193,37 @@ export async function getRecommendations(
   }
 }
 
+// Auth API
+export async function loginUser(email: string, password: string): Promise<{ token: string; userId: string; name: string }> {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: "Login failed" }));
+    throw new Error(err.detail || "Login failed");
+  }
+  return response.json();
+}
+
+export async function registerUser(name: string, email: string, password: string): Promise<{ token: string; userId: string; name: string }> {
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, password }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: "Registration failed" }));
+    throw new Error(err.detail || "Registration failed");
+  }
+  return response.json();
+}
+
 /**
  * Transform API response into CareerPath objects for display
  */
-function transformToCareerPaths(result: RecommendationResult): CareerPath[] {
+function transformToCareerPaths(result: RecommendationResult): RecommendationResponse {
   const { career, universities, jobs } = result;
 
   // Create a CareerPath for the primary career
@@ -207,16 +240,16 @@ function transformToCareerPaths(result: RecommendationResult): CareerPath[] {
     ]),
     pathway: [
       {
-        title: "Foundation Phase (Years 0-2)",
-        description: `Begin your ${career.career_field} journey with foundational learning and entry-level positions.`,
+        stage: "Foundation Phase (Years 0-2)",
+        detail: `Begin your ${career.career_field} journey with foundational learning and entry-level positions.`,
       },
       {
-        title: "Growth Phase (Years 2-5)",
-        description: "Develop expertise and take on more responsibility in your chosen field.",
+        stage: "Growth Phase (Years 2-5)",
+        detail: "Develop expertise and take on more responsibility in your chosen field.",
       },
       {
-        title: "Mastery Phase (Years 5+)",
-        description: "Become a leader and mentor in your field with advanced opportunities.",
+        stage: "Mastery Phase (Years 5+)",
+        detail: "Become a leader and mentor in your field with advanced opportunities.",
       },
     ],
   };
@@ -237,22 +270,26 @@ function transformToCareerPaths(result: RecommendationResult): CareerPath[] {
       ]),
       pathway: [
         {
-          title: "Explore",
-          description: `Learn more about ${field}`,
+          stage: "Explore",
+          detail: `Learn more about ${field}`,
         },
         {
-          title: "Learn",
-          description: `Acquire key skills in ${field}`,
+          stage: "Learn",
+          detail: `Acquire key skills in ${field}`,
         },
         {
-          title: "Execute",
-          description: `Build a career in ${field}`,
+          stage: "Execute",
+          detail: `Build a career in ${field}`,
         },
       ],
     })
   );
 
-  return [primaryCareer, ...alternativesCareers];
+  return {
+    careers: [primaryCareer, ...alternativesCareers],
+    universities: universities.universities,
+    jobs: jobs.jobs,
+  };
 }
 
 /**
@@ -284,8 +321,8 @@ export function getMockRecommendations(
   academics: string,
   interests: string[],
   skills: string[]
-): CareerPath[] {
-  return [
+): RecommendationResponse {
+  const careers: CareerPath[] = [
     {
       title: "Software Engineer",
       field: "Technology",
@@ -303,17 +340,16 @@ export function getMockRecommendations(
       ],
       pathway: [
         {
-          title: "Entry Level (0-2 years)",
-          description:
-            "Junior Developer role, learning codebase and best practices",
+          stage: "Entry Level (0-2 years)",
+          detail: "Junior Developer role, learning codebase and best practices",
         },
         {
-          title: "Mid Level (2-5 years)",
-          description: "Full-stack development, leading small features",
+          stage: "Mid Level (2-5 years)",
+          detail: "Full-stack development, leading small features",
         },
         {
-          title: "Senior Level (5+ years)",
-          description: "Architecture design, mentoring, technical leadership",
+          stage: "Senior Level (5+ years)",
+          detail: "Architecture design, mentoring, technical leadership",
         },
       ],
     },
@@ -334,19 +370,16 @@ export function getMockRecommendations(
       ],
       pathway: [
         {
-          title: "Foundation",
-          description:
-            "Learn Python, SQL, and statistical fundamentals. Work with datasets.",
+          stage: "Foundation",
+          detail: "Learn Python, SQL, and statistical fundamentals. Work with datasets.",
         },
         {
-          title: "Specialization",
-          description:
-            "Master machine learning algorithms and model building. Handle real-world problems.",
+          stage: "Specialization",
+          detail: "Master machine learning algorithms and model building. Handle real-world problems.",
         },
         {
-          title: "Leadership",
-          description:
-            "Lead data initiatives, build teams, influence business decisions.",
+          stage: "Leadership",
+          detail: "Lead data initiatives, build teams, influence business decisions.",
         },
       ],
     },
@@ -367,23 +400,21 @@ export function getMockRecommendations(
       ],
       pathway: [
         {
-          title: "Junior Analyst",
-          description:
-            "Learn business processes, gather requirements, analyze data.",
+          stage: "Junior Analyst",
+          detail: "Learn business processes, gather requirements, analyze data.",
         },
         {
-          title: "Analyst",
-          description:
-            "Own project analysis, present findings, recommend solutions.",
+          stage: "Analyst",
+          detail: "Own project analysis, present findings, recommend solutions.",
         },
         {
-          title: "Senior / Lead",
-          description:
-            "Strategic analysis, team leadership, business impact.",
+          stage: "Senior / Lead",
+          detail: "Strategic analysis, team leadership, business impact.",
         },
       ],
     },
   ];
+  return { careers, universities: [], jobs: [] };
 }
 
 /**
