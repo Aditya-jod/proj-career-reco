@@ -3,18 +3,32 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Mail, Lock, User, ArrowRight } from "lucide-react";
+import { UserPlus, Mail, Lock, User, ArrowRight, AlertCircle } from "lucide-react";
+import { registerUser } from "@/data/careerData";
 
 const Signup = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // No backend — just navigate home
-    navigate("/");
+    setError("");
+    setLoading(true);
+    try {
+      const { token, userId, name: userName } = await registerUser(name, email, password);
+      localStorage.setItem("auth_token", token);
+      localStorage.setItem("user_id", userId);
+      localStorage.setItem("user_name", userName);
+      navigate("/");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -88,11 +102,19 @@ const Signup = () => {
 
             <Button
               type="submit"
-              className="w-full h-12 text-base font-display font-semibold rounded-xl bg-gradient-to-r from-accent to-primary hover:opacity-90 transition-opacity"
+              disabled={loading}
+              className="w-full h-12 text-base font-display font-semibold rounded-xl bg-gradient-to-r from-accent to-primary hover:opacity-90 transition-opacity disabled:opacity-60"
             >
-              Create Account
-              <ArrowRight className="w-4 h-4 ml-2" />
+              {loading ? "Creating account…" : "Create Account"}
+              {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
             </Button>
+
+            {error && (
+              <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 px-4 py-3 rounded-xl">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {error}
+              </div>
+            )}
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
