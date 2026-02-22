@@ -3,17 +3,31 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, Mail, Lock, ArrowRight } from "lucide-react";
+import { LogIn, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
+import { loginUser } from "@/data/careerData";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // No backend — just navigate home
-    navigate("/");
+    setError("");
+    setLoading(true);
+    try {
+      const { token, userId, name } = await loginUser(email, password);
+      localStorage.setItem("auth_token", token);
+      localStorage.setItem("user_id", userId);
+      localStorage.setItem("user_name", name);
+      navigate("/");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -71,11 +85,19 @@ const Login = () => {
 
             <Button
               type="submit"
-              className="w-full h-12 text-base font-display font-semibold rounded-xl bg-gradient-to-r from-primary to-glow hover:opacity-90 transition-opacity"
+              disabled={loading}
+              className="w-full h-12 text-base font-display font-semibold rounded-xl bg-gradient-to-r from-primary to-glow hover:opacity-90 transition-opacity disabled:opacity-60"
             >
-              Log In
-              <ArrowRight className="w-4 h-4 ml-2" />
+              {loading ? "Logging in…" : "Log In"}
+              {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
             </Button>
+
+            {error && (
+              <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 px-4 py-3 rounded-xl">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {error}
+              </div>
+            )}
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
