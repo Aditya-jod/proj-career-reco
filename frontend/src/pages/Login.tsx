@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
 import { loginUser } from "@/data/careerData";
+import { useAuth } from "@/context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -12,6 +13,11 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+
+  // If redirected from a protected route, go back there after login
+  const from = (location.state as { from?: string } | null)?.from ?? "/";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,10 +25,8 @@ const Login = () => {
     setLoading(true);
     try {
       const { token, userId, name } = await loginUser(email, password);
-      localStorage.setItem("auth_token", token);
-      localStorage.setItem("user_id", userId);
-      localStorage.setItem("user_name", name);
-      navigate("/");
+      login(token, userId, name);
+      navigate(from, { replace: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
