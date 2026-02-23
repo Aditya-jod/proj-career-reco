@@ -1,6 +1,28 @@
-import { useState } from "react";
-import { ChevronRight, ChevronLeft, Sparkles, MapPin } from "lucide-react";
-import { interestOptions, skillOptions, hobbyOptions } from "@/data/careerData";
+import { useState, useRef, KeyboardEvent } from "react";
+import { ChevronRight, ChevronLeft, Sparkles, MapPin, X } from "lucide-react";
+
+// ── Suggestion lists (used as quick-picks only; user can type anything) ──────
+const interestSuggestions = [
+  "Technology", "Healthcare", "Business", "Creative Arts", "Education",
+  "Finance", "Engineering", "Research", "Social Work", "Law",
+  "Mathematics", "Biology", "Chemistry", "Physics", "Literature",
+  "Music", "Architecture", "Sports Science", "Psychology", "Economics",
+];
+
+const skillSuggestions = [
+  "Problem Solving", "Communication", "Leadership", "Analytical Thinking",
+  "Creativity", "Technical Skills", "Teamwork", "Time Management",
+  "Critical Thinking", "Adaptability", "Programming", "Data Analysis",
+  "Writing", "Public Speaking", "Research", "Design", "Mathematics",
+  "Project Management", "Negotiation", "Foreign Languages",
+];
+
+const hobbySuggestions = [
+  "Reading", "Sports", "Gaming", "Music", "Drawing / Design", "Coding",
+  "Writing", "Photography", "Cooking", "Traveling", "Blogging",
+  "Robotics", "Gardening", "Meditation", "Volunteering",
+  "Chess", "Dancing", "Astronomy", "3D Printing", "Video Editing",
+];
 
 interface ScoreFields {
   mathematics: number;
@@ -56,6 +78,84 @@ const scoreLabels: { key: keyof ScoreFields; label: string; emoji: string }[] = 
   { key: "social_skills", label: "Social Skills", emoji: "🤝" },
 ];
 
+// ── TagInput ─────────────────────────────────────────────────────────────────
+interface TagInputProps {
+  tags: string[];
+  suggestions: string[];
+  placeholder: string;
+  color: "primary" | "accent";
+  onAdd: (tag: string) => void;
+  onRemove: (tag: string) => void;
+}
+
+const TagInput = ({ tags, suggestions, placeholder, color, onAdd, onRemove }: TagInputProps) => {
+  const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const commit = (raw: string) => {
+    raw.split(",").map((t) => t.trim()).filter(Boolean).forEach((t) => {
+      if (!tags.some((x) => x.toLowerCase() === t.toLowerCase())) onAdd(t);
+    });
+    setInput("");
+  };
+
+  const handleKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") { e.preventDefault(); commit(input); }
+    if (e.key === "Backspace" && input === "" && tags.length > 0) onRemove(tags[tags.length - 1]);
+  };
+
+  const chipClass = color === "primary"
+    ? "bg-primary text-primary-foreground"
+    : "bg-accent text-accent-foreground";
+
+  const filtered = suggestions.filter(
+    (s) => !tags.some((t) => t.toLowerCase() === s.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-3">
+      {/* Tag chips + text input */}
+      <div
+        className="flex flex-wrap gap-2 p-3 rounded-xl border border-border bg-background cursor-text min-h-[52px]"
+        onClick={() => inputRef.current?.focus()}
+      >
+        {tags.map((tag) => (
+          <span key={tag} className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${chipClass}`}>
+            {tag}
+            <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(tag); }} className="opacity-70 hover:opacity-100">
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKey}
+          onBlur={() => { if (input.trim()) commit(input); }}
+          placeholder={tags.length === 0 ? placeholder : ""}
+          className="flex-1 min-w-[140px] bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">Type anything and press Enter (or comma to separate multiple). Or click a suggestion:</p>
+      {/* Quick-pick suggestions */}
+      <div className="flex flex-wrap gap-2">
+        {filtered.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => onAdd(s)}
+            className="px-3 py-1 rounded-full border border-border text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-muted transition-all"
+          >
+            + {s}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ── AssessmentForm ────────────────────────────────────────────────────────────
 const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
   const [step, setStep] = useState(0);
   const [academics, setAcademics] = useState("");
@@ -69,12 +169,11 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
     setScores((prev) => ({ ...prev, [key]: value }));
   };
 
-  const toggleItem = (
-    list: string[],
-    setter: React.Dispatch<React.SetStateAction<string[]>>,
-    item: string
-  ) => {
-    setter(list.includes(item) ? list.filter((i) => i !== item) : [...list, item]);
+  const addTag = (list: string[], setter: React.Dispatch<React.SetStateAction<string[]>>, tag: string) => {
+    if (!list.some((t) => t.toLowerCase() === tag.toLowerCase())) setter([...list, tag]);
+  };
+  const removeTag = (list: string[], setter: React.Dispatch<React.SetStateAction<string[]>>, tag: string) => {
+    setter(list.filter((t) => t !== tag));
   };
 
   const steps = [
@@ -102,67 +201,46 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
     },
     {
       title: "Your Interests",
-      subtitle: "Select areas that excite you (pick 2-4)",
+      subtitle: "Type your interests or pick from suggestions below",
       content: (
-        <div className="flex flex-wrap gap-2">
-          {interestOptions.map((item) => (
-            <button
-              key={item}
-              onClick={() => toggleItem(interests, setInterests, item)}
-              className={`px-4 py-2 rounded-full border text-sm font-medium transition-all duration-200
-                ${interests.includes(item)
-                  ? "border-primary bg-primary text-primary-foreground shadow-md"
-                  : "border-border hover:border-primary/40 text-foreground hover:bg-muted"
-                }`}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
+        <TagInput
+          tags={interests}
+          suggestions={interestSuggestions}
+          placeholder="e.g. Technology, Healthcare, Music…"
+          color="primary"
+          onAdd={(t) => addTag(interests, setInterests, t)}
+          onRemove={(t) => removeTag(interests, setInterests, t)}
+        />
       ),
       isValid: () => interests.length >= 1,
     },
     {
       title: "Your Skills",
-      subtitle: "What are you naturally good at? (pick 2-4)",
+      subtitle: "Type your skills or pick from suggestions below",
       content: (
-        <div className="flex flex-wrap gap-2">
-          {skillOptions.map((item) => (
-            <button
-              key={item}
-              onClick={() => toggleItem(skills, setSkills, item)}
-              className={`px-4 py-2 rounded-full border text-sm font-medium transition-all duration-200
-                ${skills.includes(item)
-                  ? "border-primary bg-primary text-primary-foreground shadow-md"
-                  : "border-border hover:border-primary/40 text-foreground hover:bg-muted"
-                }`}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
+        <TagInput
+          tags={skills}
+          suggestions={skillSuggestions}
+          placeholder="e.g. Problem Solving, Programming…"
+          color="primary"
+          onAdd={(t) => addTag(skills, setSkills, t)}
+          onRemove={(t) => removeTag(skills, setSkills, t)}
+        />
       ),
       isValid: () => skills.length >= 1,
     },
     {
       title: "Your Hobbies",
-      subtitle: "What do you love doing in your free time? (pick 2-4)",
+      subtitle: "Type your hobbies or pick from suggestions below",
       content: (
-        <div className="flex flex-wrap gap-2">
-          {hobbyOptions.map((item) => (
-            <button
-              key={item}
-              onClick={() => toggleItem(hobbies, setHobbies, item)}
-              className={`px-4 py-2 rounded-full border text-sm font-medium transition-all duration-200
-                ${hobbies.includes(item)
-                  ? "border-accent bg-accent text-accent-foreground shadow-md"
-                  : "border-border hover:border-accent/40 text-foreground hover:bg-muted"
-                }`}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
+        <TagInput
+          tags={hobbies}
+          suggestions={hobbySuggestions}
+          placeholder="e.g. Reading, Chess, Robotics…"
+          color="accent"
+          onAdd={(t) => addTag(hobbies, setHobbies, t)}
+          onRemove={(t) => removeTag(hobbies, setHobbies, t)}
+        />
       ),
       isValid: () => hobbies.length >= 1,
     },
