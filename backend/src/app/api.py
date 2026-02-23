@@ -19,7 +19,7 @@ load_dotenv(dotenv_path=_env_path)
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))  
 
@@ -194,6 +194,17 @@ class UniversityRecommendation(BaseModel):
     website: str
     score: float
 
+    @field_validator("state", "district", mode="before")
+    @classmethod
+    def coerce_nan_to_none(cls, v: object) -> Optional[str]:
+        """Convert pandas NaN (float) and blank strings to None."""
+        if v is None:
+            return None
+        if isinstance(v, float):          # NaN comes through as float from pandas
+            return None
+        text = str(v).strip()
+        return text if text else None
+
 
 class UniversitiesResponse(BaseModel):
     """Response model for university recommendations."""
@@ -260,7 +271,7 @@ async def get_recommendations(profile: StudentProfileRequest):
     Returns:
         RecommendationResponse with career, university, and job recommendations
     """
-    if not all([career_predictor, university_recommender, job_recommender, job_df]):
+    if not all([career_predictor, university_recommender, job_recommender]) or job_df is None:
         raise HTTPException(status_code=503, detail="Models not initialized")
     
     try:
