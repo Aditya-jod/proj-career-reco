@@ -69,47 +69,6 @@ export interface RecommendationResult {
   };
 }
 
-// ==================== Dropdown Options ====================
-
-export const interestOptions = [
-  "Technology",
-  "Healthcare",
-  "Business",
-  "Creative Arts",
-  "Education",
-  "Finance",
-  "Engineering",
-  "Research",
-  "Social Work",
-  "Law",
-];
-
-export const skillOptions = [
-  "Problem Solving",
-  "Communication",
-  "Leadership",
-  "Analytical Thinking",
-  "Creativity",
-  "Technical Skills",
-  "Teamwork",
-  "Time Management",
-  "Critical Thinking",
-  "Adaptability",
-];
-
-export const hobbyOptions = [
-  "Reading",
-  "Sports",
-  "Gaming",
-  "Music",
-  "Drawing/Design",
-  "Coding",
-  "Writing",
-  "Photography",
-  "Cooking",
-  "Traveling",
-];
-
 // ==================== API Functions ====================
 
 /**
@@ -183,13 +142,7 @@ export async function getRecommendations(
     // Transform backend response into CareerPath format for frontend
     return transformToCareerPaths(result);
   } catch (error) {
-    // Network errors (server unreachable) → fall back to mock data with a warning.
-    // Application-level errors (4xx/5xx already thrown above) → re-throw so the
-    // caller can show the user a meaningful error message.
-    if (error instanceof TypeError) {
-      console.warn("Backend unreachable — using mock recommendations.");
-      return getMockRecommendations(academics, interests, skills);
-    }
+    console.error("Recommendation request failed:", error);
     throw error;
   }
 }
@@ -312,110 +265,6 @@ function extractTopSkills(items: string[]): string[] {
   return keywords.filter((k) =>
     items.some((item) => item.toLowerCase().includes(k.toLowerCase()))
   );
-}
-
-/**
- * Fallback: Get mock recommendations if API is unavailable
- * This ensures the frontend still works during development
- */
-export function getMockRecommendations(
-  academics: string,
-  interests: string[],
-  skills: string[]
-): RecommendationResponse {
-  const careers: CareerPath[] = [
-    {
-      title: "Software Engineer",
-      field: "Technology",
-      description:
-        "Build innovative software solutions using cutting-edge technologies. This path is ideal if you enjoy problem-solving and technical work.",
-      matchScore: 92,
-      avgSalary: "$120,000 - $180,000",
-      growth: "15% through 2032",
-      skills: [
-        "Python",
-        "JavaScript",
-        "System Design",
-        "Problem Solving",
-        "Teamwork",
-      ],
-      pathway: [
-        {
-          stage: "Entry Level (0-2 years)",
-          detail: "Junior Developer role, learning codebase and best practices",
-        },
-        {
-          stage: "Mid Level (2-5 years)",
-          detail: "Full-stack development, leading small features",
-        },
-        {
-          stage: "Senior Level (5+ years)",
-          detail: "Architecture design, mentoring, technical leadership",
-        },
-      ],
-    },
-    {
-      title: "Data Scientist",
-      field: "Data Science",
-      description:
-        "Extract insights from large datasets using statistics and machine learning. Perfect for analytical minds.",
-      matchScore: 85,
-      avgSalary: "$100,000 - $160,000",
-      growth: "36% through 2032",
-      skills: [
-        "Python",
-        "Statistics",
-        "Machine Learning",
-        "SQL",
-        "Data Visualization",
-      ],
-      pathway: [
-        {
-          stage: "Foundation",
-          detail: "Learn Python, SQL, and statistical fundamentals. Work with datasets.",
-        },
-        {
-          stage: "Specialization",
-          detail: "Master machine learning algorithms and model building. Handle real-world problems.",
-        },
-        {
-          stage: "Leadership",
-          detail: "Lead data initiatives, build teams, influence business decisions.",
-        },
-      ],
-    },
-    {
-      title: "Business Analyst",
-      field: "Business",
-      description:
-        "Bridge the gap between business needs and technology solutions. Great if you love problem-solving and communication.",
-      matchScore: 78,
-      avgSalary: "$70,000 - $120,000",
-      growth: "11% through 2032",
-      skills: [
-        "Communication",
-        "Data Analysis",
-        "Problem Solving",
-        "SQL",
-        "Excel",
-      ],
-      pathway: [
-        {
-          stage: "Junior Analyst",
-          detail: "Learn business processes, gather requirements, analyze data.",
-        },
-        {
-          stage: "Analyst",
-          detail: "Own project analysis, present findings, recommend solutions.",
-        },
-        {
-          stage: "Senior / Lead",
-          detail: "Strategic analysis, team leadership, business impact.",
-        },
-      ],
-    },
-  ];
-  return { careers, universities: [], jobs: [] };
 }
 
 /**
