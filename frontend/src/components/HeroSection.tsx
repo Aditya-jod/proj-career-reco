@@ -1,6 +1,7 @@
-import { ArrowRight, Compass, Brain, Target, Rocket, Users } from "lucide-react";
+import { ArrowRight, Compass, Brain, Target, Rocket, Users, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBg from "@/assets/CPR project image.png";
+import { useAuth } from "@/context/AuthContext";
 
 interface HeroSectionProps {
   onStart: () => void;
@@ -34,6 +35,8 @@ const steps = [
 ];
 
 const HeroSection = ({ onStart }: HeroSectionProps) => {
+  const { isAuthenticated, user, logout } = useAuth();
+
   return (
     <>
       {/* Hero */}
@@ -42,18 +45,35 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
         <nav className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
           <span className="font-display font-bold text-xl text-foreground">CareerPath</span>
           <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="px-4 py-2 text-sm font-medium rounded-xl border border-primary text-foreground hover:bg-primary/10 hover:text-primary transition-all duration-300 hover:shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
-            >
-              Log In
-            </Link>
-            <Link
-              to="/signup"
-              className="px-4 py-2 text-sm font-medium rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 hover:shadow-[0_0_25px_hsl(var(--primary)/0.5)] hover:scale-105"
-            >
-              Sign Up
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <span className="text-sm text-muted-foreground">
+                  Hi, <span className="font-medium text-foreground">{user?.name}</span>
+                </span>
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl border border-border text-foreground hover:bg-muted hover:text-destructive transition-all duration-300"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="px-4 py-2 text-sm font-medium rounded-xl border border-primary text-foreground hover:bg-primary/10 hover:text-primary transition-all duration-300 hover:shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
+                >
+                  Log In
+                </Link>
+                <Link
+                  to="/signup"
+                  className="px-4 py-2 text-sm font-medium rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 hover:shadow-[0_0_25px_hsl(var(--primary)/0.5)] hover:scale-105"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
         </nav>
 
