@@ -2,7 +2,6 @@ pandas
 numpy
 scikit-learn
 nltk
-spacy
 sentence-transformers
 pyyaml
 ipykernel
@@ -16,3 +15,6 @@ uvicorn
 python-multipart
 pydantic
 python-dotenv
+python-jose[cryptography]
+passlib[bcrypt]
+pytest
