@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -11,6 +12,8 @@ from src.models.university_ranker import (
     UniversityContext,
     UniversityRankerModel,
     UniversityRankerTrainer,
+    _ELITE_NAME_PATTERNS,
+    _COACHING_PATTERNS,
 )
 from src.models.country_utils import country_pattern
 
@@ -30,6 +33,14 @@ class UniversityDatasetBuilder:
             indian = self.indian_df.copy()
             world = self.world_df.copy()
 
+            # Strip "(Id: C-xxxxx)" suffixes from college names for cleaner display
+            indian["College Name"] = (
+                indian["College Name"]
+                .fillna("")
+                .str.replace(r"\s*\(Id:\s*C-\d+\)", "", regex=True)
+                .str.strip()
+            )
+
             indian["search_text"] = (
                 indian["College Name"].fillna("")
                 + " "
@@ -44,6 +55,8 @@ class UniversityDatasetBuilder:
                 + indian["Management"].fillna("")
             )
             indian["country"] = "India"
+
+            # Carry quality columns through for the ranker
             indian_clean = indian[
                 [
                     "search_text",
@@ -52,6 +65,9 @@ class UniversityDatasetBuilder:
                     "District",
                     "country",
                     "Website",
+                    "Specialised in",
+                    "College Type",
+                    "University Type",
                 ]
             ].rename(columns={"College Name": "name"})
 
@@ -62,6 +78,11 @@ class UniversityDatasetBuilder:
 
             unified = pd.concat([indian_clean, world_clean], ignore_index=True)
             unified["Website"] = unified["Website"].astype(str)
+            # Fill NaN quality columns for world universities with defaults
+            for col in ["Specialised in", "College Type", "University Type"]:
+                if col not in unified.columns:
+                    unified[col] = ""
+                unified[col] = unified[col].fillna("")
             return unified
         except Exception as exc:
             raise ValueError("Failed to build university dataset") from exc
@@ -77,14 +98,14 @@ class EmbeddingCache:
     def load_or_build(self, texts: List[str]) -> np.ndarray:
         try:
             if os.path.exists(self.cache_path):
-                print("[cache] Loading cached university embeddings...")
+                logger.info("Loading cached university embeddings...")
                 return np.load(self.cache_path)
 
-            print("[cache] Computing university embeddings (one-time, may take a moment)...")
+            logger.info("Computing university embeddings (one-time, may take a moment)...")
             embeddings = self.feature_builder.encode(texts)
             os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
             np.save(self.cache_path, embeddings)
-            print("[cache] Embeddings saved to disk.")
+            logger.info("Embeddings saved to disk.")
             return embeddings
         except Exception as exc:
             raise RuntimeError("Unable to load or build university embeddings") from exc
@@ -144,7 +165,7 @@ class UniversityRecommender:
                 candidate_df["country"].str.contains(pattern, case=False, na=False)
             ]
             if filtered_candidates.empty:
-                print("[info] No universities found for the requested country; showing global matches instead.")
+                logger.info("No universities found for the requested country; showing global matches instead.")
             else:
                 candidate_df = filtered_candidates
                 country_enforced = True
@@ -160,6 +181,7 @@ class UniversityRecommender:
             # Get ML scores for all candidates
             feature_df = self.ranker.matrix_builder.build(candidate_df, context)
             feature_df = feature_df[self.ranker.feature_columns]
+            assert self.ranker.model is not None  # guaranteed by is_ready()
             ml_scores = self.ranker.model.predict(feature_df)
 
             # Get BERT cosine similarity scores for the same candidates
@@ -173,7 +195,24 @@ class UniversityRecommender:
                 lo, hi = arr.min(), arr.max()
                 return (arr - lo) / (hi - lo + 1e-9)
 
-            combined = 0.5 * _norm(ml_scores) + 0.5 * _norm(cos_scores)
+            combined = 0.65 * _norm(ml_scores) + 0.35 * _norm(cos_scores)
+
+            # ── Post-hoc quality adjustment ──────────────────────────────
+            # The ML model can't fully separate elite vs. obscure colleges
+            # when the training signal is a heuristic.  Apply direct
+            # multipliers so that IITs / NITs / IIITs are never buried
+            # beneath tiny single-department colleges, and coaching centres
+            # are pushed down regardless of keyword overlap.
+            names = candidate_df["name"].fillna("").values
+            quality_mult = np.ones(len(combined), dtype=float)
+            for i, nm in enumerate(names):
+                if _ELITE_NAME_PATTERNS.search(nm):
+                    quality_mult[i] = 1.35
+                if _COACHING_PATTERNS.search(nm):
+                    quality_mult[i] = 0.40
+            combined = combined * quality_mult
+            # Re-normalise so scores stay in [0, 1]
+            combined = _norm(combined)
 
             ranked = candidate_df.copy()
             ranked["score"] = combined
@@ -201,7 +240,7 @@ class UniversityRecommender:
             pattern = country_pattern(country)
             filtered = results[results["country"].str.contains(pattern, case=False, na=False)]
             if filtered.empty:
-                print("[info] No universities found for the requested country; showing global matches instead.")
+                logger.info("No universities found for the requested country; showing global matches instead.")
             else:
                 results = filtered
 
