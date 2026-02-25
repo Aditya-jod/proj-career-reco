@@ -1,28 +1,9 @@
-import { useState, useRef, KeyboardEvent } from "react";
-import { ChevronRight, ChevronLeft, Sparkles, MapPin, X } from "lucide-react";
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { ChevronRight, ChevronLeft, Sparkles, MapPin, X, Loader2 } from "lucide-react";
+import { fetchSuggestions, type SuggestionsData } from "@/data/careerData";
 
-// ── Suggestion lists (used as quick-picks only; user can type anything) ──────
-const interestSuggestions = [
-  "Technology", "Healthcare", "Business", "Creative Arts", "Education",
-  "Finance", "Engineering", "Research", "Social Work", "Law",
-  "Mathematics", "Biology", "Chemistry", "Physics", "Literature",
-  "Music", "Architecture", "Sports Science", "Psychology", "Economics",
-];
-
-const skillSuggestions = [
-  "Problem Solving", "Communication", "Leadership", "Analytical Thinking",
-  "Creativity", "Technical Skills", "Teamwork", "Time Management",
-  "Critical Thinking", "Adaptability", "Programming", "Data Analysis",
-  "Writing", "Public Speaking", "Research", "Design", "Mathematics",
-  "Project Management", "Negotiation", "Foreign Languages",
-];
-
-const hobbySuggestions = [
-  "Reading", "Sports", "Gaming", "Music", "Drawing / Design", "Coding",
-  "Writing", "Photography", "Cooking", "Traveling", "Blogging",
-  "Robotics", "Gardening", "Meditation", "Volunteering",
-  "Chess", "Dancing", "Astronomy", "3D Printing", "Video Editing",
-];
+// Suggestion lists are fetched from the backend API (not hardcoded).
+// Fallback empty arrays ensure the form works even if the API is unavailable.
 
 interface ScoreFields {
   mathematics: number;
@@ -47,12 +28,8 @@ interface AssessmentFormProps {
   }) => void;
 }
 
-const academicStreams = [
-  "Science (PCM)",
-  "Science (PCB)",
-  "Commerce",
-  "Arts / Humanities",
-];
+// academicStreams is fetched from the API via fetchSuggestions()
+// (no hardcoded list here)
 
 const defaultScores: ScoreFields = {
   mathematics: 70,
@@ -165,6 +142,26 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
   const [scores, setScores] = useState<ScoreFields>(defaultScores);
   const [preferredLocation, setPreferredLocation] = useState("");
 
+  // ── Dynamic suggestions from the backend ──────────────────────────
+  const [suggestions, setSuggestions] = useState<SuggestionsData>({
+    interests: [],
+    skills: [],
+    hobbies: [],
+    academic_streams: [],
+  });
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchSuggestions().then((data) => {
+      if (!cancelled) {
+        setSuggestions(data);
+        setSuggestionsLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   const setScore = (key: keyof ScoreFields, value: number) => {
     setScores((prev) => ({ ...prev, [key]: value }));
   };
@@ -179,10 +176,15 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
   const steps = [
     {
       title: "Academic Stream",
-      subtitle: "What's your Class 12 stream?",
-      content: (
+      subtitle: "What's your academic focus area?",
+      content: suggestionsLoading ? (
+        <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          Loading options…
+        </div>
+      ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {academicStreams.map((stream) => (
+          {suggestions.academic_streams.map((stream) => (
             <button
               key={stream}
               onClick={() => setAcademics(stream)}
@@ -205,7 +207,7 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
       content: (
         <TagInput
           tags={interests}
-          suggestions={interestSuggestions}
+          suggestions={suggestions.interests}
           placeholder="e.g. Technology, Healthcare, Music…"
           color="primary"
           onAdd={(t) => addTag(interests, setInterests, t)}
@@ -220,7 +222,7 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
       content: (
         <TagInput
           tags={skills}
-          suggestions={skillSuggestions}
+          suggestions={suggestions.skills}
           placeholder="e.g. Problem Solving, Programming…"
           color="primary"
           onAdd={(t) => addTag(skills, setSkills, t)}
@@ -235,7 +237,7 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
       content: (
         <TagInput
           tags={hobbies}
-          suggestions={hobbySuggestions}
+          suggestions={suggestions.hobbies}
           placeholder="e.g. Reading, Chess, Robotics…"
           color="accent"
           onAdd={(t) => addTag(hobbies, setHobbies, t)}
