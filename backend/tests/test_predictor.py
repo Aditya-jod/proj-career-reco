@@ -1,8 +1,4 @@
-import sys
-import os
 import pandas as pd
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 from src.data.loader import load_config, load_raw_data
 from src.models.career_predictor import CareerPredictor
