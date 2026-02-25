@@ -23,6 +23,48 @@ def _tokenize(text: str) -> set[str]:
     return set(tokens)
 
 
+# Patterns in college names that indicate coaching / skill centres
+# rather than actual universities.  Used to penalise low-quality entries.
+_COACHING_PATTERNS = re.compile(
+    r"\b(career\s+(computer|academy|dimension|institute)|"
+    r"skill\s*(initiate|development|institute)|"
+    r"computer\s+education|"
+    r"coaching\s+centre|"
+    r"tutorial|"
+    r"cats\b.*career\s+academy)\b",
+    re.IGNORECASE,
+)
+
+# Name patterns for elite / nationally-recognised institutions.
+# Used to boost IITs, NITs, IIITs, IISc, BITS, top private universities
+# **and** world-class global universities that appear in the world_universities
+# dataset (they lack the Indian quality columns).
+_ELITE_NAME_PATTERNS = re.compile(
+    r"\b("
+    r"Indian Institute of Technology|"
+    r"National Institute of Technology|"
+    r"Indian Institute of Information Technology|"
+    r"Indian Institute of Science|"
+    r"Indian Statistical Institute|"
+    r"Birla Institute of Technology|"
+    r"Vellore Institute of Technology|"
+    r"Anna University|"
+    r"Jadavpur University|"
+    r"University of Delhi|"
+    r"Jawaharlal Nehru University|"
+    r"Banaras Hindu University|"
+    r"Aligarh Muslim University|"
+    r"BITS\s+Pilani|"
+    r"\bIIT\b|"
+    r"\bNIT\b|"
+    r"\bIIIT\b|"
+    r"\bIISc\b|"
+    r"\bISI\b"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
 @dataclass
 class UniversityContext:
     career_text: str
@@ -42,7 +84,8 @@ class UniversityFeatureEngineer:
     def build_features(self, university_row: pd.Series, context: UniversityContext) -> dict:
         search_text = str(university_row.get("search_text", ""))
         specialization_tokens = _tokenize(search_text)
-        name_tokens = _tokenize(str(university_row.get("name", "")))
+        name = str(university_row.get("name", ""))
+        name_tokens = _tokenize(name)
 
         keyword_overlap = len(context.keywords & specialization_tokens)
         keyword_overlap_ratio = (
@@ -60,6 +103,45 @@ class UniversityFeatureEngineer:
         country_match = country_matches(context.preferred_country, country)
         state_match = self._matches(context.preferred_state, state)
 
+        # ── Quality signals ──────────────────────────────────────────────
+        # Specialisation — a college with a declared specialisation in the
+        # area of interest is worth far more than one with "No" specialism.
+        specialisation_raw = str(university_row.get("Specialised in", "")).strip()
+        has_real_specialisation = (
+            1.0 if specialisation_raw and specialisation_raw.lower() not in ("no", "nan", "none", "")
+            else 0.0
+        )
+
+        # College type quality — constituent / university colleges are
+        # generally higher-quality than random affiliated colleges.
+        # World universities (no College Type) are actual universities by
+        # definition, so they get a base quality bonus.
+        college_type = str(university_row.get("College Type", "")).strip().lower()
+        is_world_university = (not college_type) or college_type in ("nan", "none")
+        is_university_college = (
+            1.0 if (
+                "university" in college_type
+                or "autonomous" in college_type
+                or is_world_university  # world_universities entries are real universities
+            ) else 0.0
+        )
+
+        # University type quality — Central University / IIT / NIT / deemed
+        # are stronger signals than generic state universities.
+        # Also match elite institution names directly (covers IITs from
+        # world_universities that have no University Type metadata).
+        uni_type = str(university_row.get("University Type", "")).strip().lower()
+        is_premier = (
+            1.0 if (
+                any(k in uni_type for k in ("central", "national importance", "deemed"))
+                or _ELITE_NAME_PATTERNS.search(name)
+            ) else 0.0
+        )
+
+        # Coaching-centre penalty — small skill/career/computer institutes
+        # should score lower.
+        is_coaching = 1.0 if _COACHING_PATTERNS.search(name) else 0.0
+
         features = {
             "specialization_match": 1.0 if keyword_overlap > 0 else 0.0,
             "specialization_overlap": keyword_overlap_ratio,
@@ -70,9 +152,14 @@ class UniversityFeatureEngineer:
             "has_district": 0.0 if district in {"", "nan", "None"} else 1.0,
             "has_website": 0.0 if website in {"", "nan", "None"} else 1.0,
             "search_text_len": len(search_text),
-            "name_len": len(str(university_row.get("name", ""))),
+            "name_len": len(name),
             "country_is_india": 1.0 if country.lower().strip() == "india" else 0.0,
             "keyword_boost": self._keyword_boost(specialization_tokens),
+            # Quality features
+            "has_real_specialisation": has_real_specialisation,
+            "is_university_college": is_university_college,
+            "is_premier": is_premier,
+            "is_coaching": is_coaching,
         }
         return features
 
@@ -110,13 +197,19 @@ class HeuristicLabelStrategy(BaseLabelStrategy):
 
     def score(self, features: dict) -> float:
         score = 0.1
-        score += 0.5 * features["specialization_match"]
-        score += 0.3 * features["specialization_overlap"]
-        score += 0.2 * features["country_match"]
-        score += 0.1 * features["state_match"]
-        score += 0.1 * features["name_overlap"]
-        score += 0.1 * features["keyword_boost"]
-        return float(min(score, 1.0))
+        score += 0.15 * features["specialization_match"]
+        score += 0.10 * features["specialization_overlap"]
+        score += 0.10 * features["country_match"]
+        score += 0.05 * features["state_match"]
+        score += 0.05 * features["name_overlap"]
+        score += 0.05 * features["keyword_boost"]
+        # Quality bonuses / penalties — weighted heavily so that premier
+        # institutions consistently outrank small unspecialised colleges.
+        score += 0.15 * features["has_real_specialisation"]
+        score += 0.15 * features["is_university_college"]
+        score += 0.25 * features["is_premier"]
+        score -= 0.40 * features["is_coaching"]
+        return float(max(0.0, min(score, 1.0)))
 
 
 class UniversityRankerModel:
@@ -148,7 +241,7 @@ class UniversityRankerModel:
         context: UniversityContext,
         top_k: int = 10,
     ) -> pd.DataFrame:
-        if not self.is_ready():
+        if not self.is_ready() or self.model is None:
             raise RuntimeError("University ranker model is not loaded")
 
         feature_df = self.matrix_builder.build(universities, context)
