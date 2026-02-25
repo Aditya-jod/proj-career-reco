@@ -1,8 +1,11 @@
+import logging
 import os
 from pathlib import Path
 
 import pandas as pd
 import yaml
+
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "config.yaml"
@@ -34,7 +37,7 @@ def load_config(config_path: str | None = None):
             config = yaml.safe_load(f)
         return config
     except FileNotFoundError:
-        print(f"Error: Config file not found at {path}")
+        logger.error("Config file not found at %s", path)
         return None
 
 def load_raw_data(config):
@@ -47,43 +50,43 @@ def load_raw_data(config):
     datasets = {}
     
     try:
-        print("Loading datasets...")
+        logger.info("Loading datasets...")
         
         # 1. Career Path Data
-        datasets['career_path'] = pd.read_csv(_resolve_path(datasets_config['career_path']))
+        datasets['career_path'] = pd.read_csv(_resolve_path(datasets_config['career_path']), skipinitialspace=True)
         datasets['career_path'].columns = datasets['career_path'].columns.str.strip()
-        print(f"Loaded Career Path Data: {datasets['career_path'].shape}")
+        logger.info("Loaded Career Path Data: %s", datasets['career_path'].shape)
 
         # 2. Student/Recommendation Data
-        datasets['student_reco'] = pd.read_csv(_resolve_path(datasets_config['student_reco']))
+        datasets['student_reco'] = pd.read_csv(_resolve_path(datasets_config['student_reco']), skipinitialspace=True)
         datasets['student_reco'].columns = datasets['student_reco'].columns.str.strip()
-        print(f"Loaded Student Reco Data: {datasets['student_reco'].shape}")
+        logger.info("Loaded Student Reco Data: %s", datasets['student_reco'].shape)
 
         # Load the second student dataset
         try:
-            datasets['student_reco_2'] = pd.read_csv(_resolve_path(datasets_config['student_reco_2']))
+            datasets['student_reco_2'] = pd.read_csv(_resolve_path(datasets_config['student_reco_2']), skipinitialspace=True)
             datasets['student_reco_2'].columns = datasets['student_reco_2'].columns.str.strip()
-            print(f"Loaded Student Reco Data 2: {datasets['student_reco_2'].shape}")
+            logger.info("Loaded Student Reco Data 2: %s", datasets['student_reco_2'].shape)
         except Exception as e:
-            print(f"Warning: Could not load student_reco_2: {e}")
+            logger.warning("Could not load student_reco_2: %s", e)
             datasets['student_reco_2'] = None
 
         # 3. Job Descriptions
-        datasets['job_descriptions'] = pd.read_csv(_resolve_path(datasets_config['job_descriptions']))
-        print(f"Loaded Job Descriptions: {datasets['job_descriptions'].shape}")
+        datasets['job_descriptions'] = pd.read_csv(_resolve_path(datasets_config['job_descriptions']), skipinitialspace=True)
+        logger.info("Loaded Job Descriptions: %s", datasets['job_descriptions'].shape)
 
         # 4. Colleges & Universities Data
-        datasets['indian_colleges'] = pd.read_csv(_resolve_path(datasets_config['indian_colleges']))
-        datasets['world_universities'] = pd.read_csv(_resolve_path(datasets_config['world_universities']))
+        datasets['indian_colleges'] = pd.read_csv(_resolve_path(datasets_config['indian_colleges']), skipinitialspace=True)
+        datasets['world_universities'] = pd.read_csv(_resolve_path(datasets_config['world_universities']), skipinitialspace=True)
         
-        print("All primary datasets loaded successfully.")
+        logger.info("All primary datasets loaded successfully.")
         return datasets
         
     except FileNotFoundError as e:
-        print(f"Error loading datasets: {e}")
+        logger.error("Error loading datasets: %s", e)
         return None
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        logger.error("An unexpected error occurred: %s", e)
         return None
     
 if __name__ == "__main__":
