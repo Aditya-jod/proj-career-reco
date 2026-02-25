@@ -1,8 +1,16 @@
+"""
+CareerPredictor — Random Forest classifier trained on numeric academic scores.
+
+Single Responsibility: provides the RF numeric / soft-skill signal only.
+All SBERT text encoding lives in SBERTCareerClassifier.
+All ensemble blending lives in CareerService.
+(SRP / SOLID)
+"""
 import logging
 import os
 import re
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
 
 import joblib
 import numpy as np
@@ -27,107 +35,10 @@ from src.models.config import (
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Career keyword map used to boost predictions from free-text skills input
-# ---------------------------------------------------------------------------
-CAREER_KEYWORD_MAP: Dict[str, List[str]] = {
-    "STEM": [
-        "python", "data", "programming", "coding", "algorithm", "analytics",
-        "machine learning", "statistics", "r", "java", "software", "engineering",
-        "physics", "chemistry", "biology", "computer", "ai", "ml", "deep learning",
-        "mathematics", "calculus", "sql", "database", "network", "cybersecurity",
-    ],
-    "Healthcare": [
-        "medical", "health", "nursing", "doctor", "patient", "clinical",
-        "pharmacy", "therapy", "medicine", "hospital", "surgery", "diagnosis",
-        "anatomy", "physiology", "biomedical", "dentistry", "radiology",
-    ],
-    "Business_Finance": [
-        "business", "finance", "accounting", "management", "marketing",
-        "sales", "economics", "investment", "trading", "entrepreneur",
-        "strategy", "consulting", "product", "analyst", "budget", "revenue",
-        "commerce", "supply chain", "operations",
-    ],
-    "Education": [
-        "teaching", "education", "learning", "curriculum", "training",
-        "coaching", "tutoring", "classroom", "pedagogy", "lesson plan",
-        "school", "professor", "instructor",
-    ],
-    "Arts_Media": [
-        "design", "art", "creative", "writing", "music", "photography",
-        "video", "graphic", "animation", "media", "film", "content",
-        "illustration", "storytelling", "journalism", "advertising",
-    ],
-    "Social_Services": [
-        "social", "community", "welfare", "counseling", "nonprofit",
-        "volunteer", "psychology", "mental health", "social work",
-        "advocacy", "rehabilitation", "case management",
-    ],
-    "Government_Law": [
-        "law", "legal", "policy", "government", "politics", "justice",
-        "compliance", "regulation", "public administration", "civil service",
-        "legislation", "judiciary", "attorney", "paralegal",
-    ],
-    "Trades_Manufacturing": [
-        "mechanical", "electrical", "plumbing", "carpentry", "manufacturing",
-        "construction", "trades", "welding", "automotive", "hvac",
-        "industrial", "machinist", "technician",
-    ],
-}
 
 
-class SkillsTextBooster:
-    """
-    Adjusts career prediction probabilities using keyword signals from
-    free-text skills input.  Applied after model inference so no retraining
-    is required when skills_text is available.
-    """
 
-    def __init__(self, keyword_map: Optional[Dict[str, List[str]]] = None, weight: float = 0.4):
-        self.keyword_map = keyword_map or CAREER_KEYWORD_MAP
-        # weight controls how much the text signal shifts the final score
-        # 0.0 = pure model, 1.0 = pure text match
-        self.weight = weight
 
-    def boost(
-        self,
-        class_probs: np.ndarray,
-        class_labels: np.ndarray,
-        skills_text: str,
-    ) -> np.ndarray:
-        """Return adjusted probability array.  class_labels must align with class_probs."""
-        if not skills_text or not skills_text.strip():
-            return class_probs
-
-        tokens = set(re.findall(r"[a-z]+", skills_text.lower()))
-        text_scores = np.zeros(len(class_labels))
-
-        for i, label in enumerate(class_labels):
-            # Normalise stored label to match CAREER_KEYWORD_MAP keys  
-            clean_label = label.replace(" ", "_").replace("/", "_")
-            keywords = self.keyword_map.get(clean_label, [])
-            if not keywords:
-                # try case-insensitive key lookup
-                for k, v in self.keyword_map.items():
-                    if k.lower() == clean_label.lower():
-                        keywords = v
-                        break
-            if keywords:
-                keyword_tokens = set(
-                    word for kw in keywords for word in kw.lower().split()
-                )
-                matches = len(tokens & keyword_tokens)
-                text_scores[i] = matches / max(1, len(keyword_tokens))
-
-        if text_scores.sum() == 0:
-            return class_probs
-
-        # Normalise text scores to a probability distribution
-        text_probs = text_scores / text_scores.sum()
-
-        # Blend
-        blended = (1 - self.weight) * class_probs + self.weight * text_probs
-        return blended / blended.sum()  # renormalise
 
 
 @dataclass
@@ -169,27 +80,46 @@ class ModelStorage:
     def load_model(self):
         """Load the model, encoder, and features from disk."""
         if not self.exists():
-            raise FileNotFoundError(f"No saved model found at {self.path}")
+            raise FileNotFoundError(
+                f"No saved model found at {self.path}. "
+                "Run 'python scripts/retrain_models.py' to train models first."
+            )
         logger.info("Loading career predictor model from %s", self.path)
         data = joblib.load(self.path)
         logger.info("Career predictor model loaded successfully")
         return data["model"], data["encoder"], data["features"]
 
 class CareerPredictor:
-    def __init__(self, model_path: str = MODEL_PATH):
+    """
+    Random Forest career predictor trained on numeric academic scores.
+
+    Single Responsibility: RF numeric / soft-skill signal only.
+    Blending with SBERT semantic signal is the responsibility of CareerService.
+    """
+
+    def __init__(self, model_path: str = MODEL_PATH) -> None:
         self.model = RandomForestClassifier(
             n_estimators=RF_N_ESTIMATORS,
             random_state=RF_RANDOM_STATE,
             max_depth=RF_MAX_DEPTH,
             min_samples_split=RF_MIN_SAMPLES_SPLIT,
-            class_weight=RF_CLASS_WEIGHT,
+            class_weight=RF_CLASS_WEIGHT,  # type: ignore[arg-type]  # validated str literal
             n_jobs=-1,
         )
         self.label_encoder = LabelEncoder()
         self.is_trained = False
         self.feature_columns = FEATURE_COLUMNS
         self.storage = ModelStorage(model_path)
-        self.booster = SkillsTextBooster()
+
+    def load(self) -> None:
+        """Load a pre-trained model from disk.
+
+        Raises FileNotFoundError with an actionable message when the model
+        hasn't been trained yet.  Train first with::
+
+            python scripts/retrain_models.py
+        """
+        self._load_model()
 
     def load_or_train(self, df, verbose=True):
         """Load a saved model if available, otherwise train a new one."""
@@ -238,36 +168,39 @@ class CareerPredictor:
 
     def predict(self, user_input, skills_text: str = ""):
         try:
-            input_df = self._prepare_input(user_input)
-
-            probs = self.model.predict_proba(input_df)[0]
-            probs = self.booster.boost(probs, self.label_encoder.classes_, skills_text)
-
-            pred_idx = int(np.argmax(probs))
-            pred_label = self.label_encoder.inverse_transform([pred_idx])[0]
-            confidence = float(probs[pred_idx])
-
-            return pred_label, confidence
+            results = self.predict_top_k(user_input, k=1, skills_text=skills_text)
+            return results[0]
         except Exception as exc:
             raise RuntimeError("Failed to generate career prediction") from exc
 
-    def predict_top_k(self, user_input, k=3, skills_text: str = ""):
-        """Returns the top k predictions with their probabilities."""
+    def predict_proba(self, user_input: dict) -> Tuple[np.ndarray, List[str]]:
+        """Return (probability_array, label_list) for ALL career classes.
+
+        Used by CareerService to blend with SBERT probabilities.
+        """
         try:
             input_df = self._prepare_input(user_input)
+            probs = self.model.predict_proba(input_df)[0]   # (n_classes,)
+            labels: List[str] = list(self.label_encoder.classes_)
+            return probs, labels
+        except Exception as exc:
+            raise RuntimeError("Failed to compute RF career probabilities") from exc
 
-            probs = self.model.predict_proba(input_df)[0]
-            probs = self.booster.boost(probs, self.label_encoder.classes_, skills_text)
+    def predict_top_k(
+        self,
+        user_input: dict,
+        k: int = 3,
+        skills_text: str = "",
+    ) -> List[Tuple[str, float]]:
+        """Return top-k RF-only career predictions.
 
-            top_k_indices = np.argsort(probs)[-k:][::-1]
-
-            results = []
-            for idx in top_k_indices:
-                label = self.label_encoder.inverse_transform([idx])[0]
-                prob = float(probs[idx])
-                results.append((label, prob))
-
-            return results
+        skills_text is accepted for API compatibility but is intentionally
+        ignored here — blending is CareerService's concern.
+        """
+        try:
+            probs, labels = self.predict_proba(user_input)
+            top_indices = np.argsort(probs)[-k:][::-1]
+            return [(labels[i], float(probs[i])) for i in top_indices]
         except Exception as exc:
             raise RuntimeError("Failed to compute top career predictions") from exc
     
@@ -298,12 +231,15 @@ class CareerPredictor:
             raise RuntimeError("Failed to prepare input for prediction") from exc
 
     def _ensure_model_loaded(self) -> None:
-        """Ensure the model is trained or loaded from disk."""
+        """Ensure the model is loaded; raise clearly if not trained yet."""
         if not self.is_trained:
             if self.storage.exists():
                 self._load_model()
             else:
-                raise RuntimeError("Model is not trained yet.")
+                raise RuntimeError(
+                    "Career predictor model not found. "
+                    "Run 'python scripts/retrain_models.py' first."
+                )
 
     def _mark_trained(self) -> None:
         """Mark the model as successfully trained."""
