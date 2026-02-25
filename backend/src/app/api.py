@@ -5,9 +5,9 @@ Exposes ML models (Career Predictor, University Recommender, Job Recommender) as
 
 import logging
 import os
-import sys
+import time
+from collections import defaultdict
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -17,20 +17,27 @@ from dotenv import load_dotenv
 _env_path = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(dotenv_path=_env_path)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))  
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.data.loader import load_config, load_raw_data
 from src.data.preprocessing import clean_text
 from src.features.build_features import FeatureBuilder
-from src.models.career_predictor import CareerPredictor
+from src.models.sbert_career_classifier import SBERTCareerClassifier
 from src.models.university_recommender import UniversityRecommender
 from src.models.career_recommender import CareerRecommender
-from src.auth.auth import hash_password, verify_password, create_access_token
+from src.services.career_service import CareerService
+from src.auth.user_service import AuthService, UserRepository
+from src.auth.auth import get_current_user
 from src.db.mongo import get_db, close_db
+from src.db.career_repository import (
+    get_all_careers,
+    get_career,
+    get_career_metadata,
+)
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -39,9 +46,47 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# CORS — read allowed origins from env (comma-separated).
-# Falls back to localhost dev servers so local dev works without .env.
-# Example: ALLOWED_ORIGINS=https://myapp.com,https://www.myapp.com
+# Rate-limiter middleware (simple sliding-window per-IP)
+# ---------------------------------------------------------------------------
+
+class _RateLimitState:
+    """Thread-safe in-memory rate-limit store keyed by (ip, path)."""
+
+    def __init__(self, max_calls: int = 10, window_seconds: int = 60):
+        self.max_calls = max_calls
+        self.window = window_seconds
+        self._hits: dict[str, list[float]] = defaultdict(list)
+
+    def is_allowed(self, key: str) -> bool:
+        now = time.time()
+        hits = self._hits[key]
+        # Remove expired timestamps
+        self._hits[key] = [t for t in hits if now - t < self.window]
+        if len(self._hits[key]) >= self.max_calls:
+            return False
+        self._hits[key].append(now)
+        return True
+
+
+_login_limiter = _RateLimitState(max_calls=10, window_seconds=60)
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Apply rate‐limiting to /auth/login only."""
+
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path == "/auth/login" and request.method == "POST":
+            ip = request.client.host if request.client else "unknown"
+            if not _login_limiter.is_allowed(ip):
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Too many login attempts. Try again later."},
+                )
+        return await call_next(request)
+
+
+# ---------------------------------------------------------------------------
+# CORS
 # ---------------------------------------------------------------------------
 _raw_origins = os.getenv(
     "ALLOWED_ORIGINS",
@@ -50,9 +95,9 @@ _raw_origins = os.getenv(
 ALLOWED_ORIGINS: List[str] = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
 # ---------------------------------------------------------------------------
-# Global model state — populated during lifespan startup
+# Global model state — assigned during startup lifespan, used by route handlers.
 # ---------------------------------------------------------------------------
-career_predictor: Optional[CareerPredictor] = None
+career_predictor: Optional[CareerService] = None
 university_recommender: Optional[UniversityRecommender] = None
 job_recommender: Optional[CareerRecommender] = None
 job_df: Any = None          # pd.DataFrame — typed as Any to avoid import at module scope
@@ -72,15 +117,24 @@ async def lifespan(application: FastAPI):
         # ── Load config & datasets ──────────────────────────────────────────
         config = load_config()
         datasets = load_raw_data(config)
+        if datasets is None:
+            raise RuntimeError("Failed to load datasets — check config.yaml paths.")
 
-        # ── Career Predictor ────────────────────────────────────────────────
-        logger.info("Loading Career Predictor…")
-        career_predictor = CareerPredictor()
-        career_predictor.load_or_train(datasets["student_reco"], verbose=False)
+        # ── Shared Sentence-BERT encoder (university, job, and SBERT career classifier)
+        # Loaded once; the same model instance is reused across all components.
+        logger.info("Loading Sentence-BERT encoder…")
+        feature_builder = FeatureBuilder()
+
+        # ── Supervised SBERT Career Classifier (load trained classifier) ────
+        logger.info("Loading supervised SBERT career classifier…")
+        sbert_clf = SBERTCareerClassifier(encoder=feature_builder)
+        sbert_clf.load()   # loads trained LogisticRegression from disk
+
+        # ── CareerService wraps the classifier ──────────────────────────────
+        career_predictor = CareerService(classifier=sbert_clf)
 
         # ── University Recommender ──────────────────────────────────────────
         logger.info("Loading University Recommender…")
-        feature_builder = FeatureBuilder()
         university_recommender = UniversityRecommender(
             feature_builder=feature_builder,
             indian_df=datasets["indian_colleges"],
@@ -112,18 +166,17 @@ async def lifespan(application: FastAPI):
                 .fillna("")
                 .agg(" ".join, axis=1)
             )
-            job_feature_builder = FeatureBuilder()
+            job_feature_builder = feature_builder   # reuse the shared encoder
             job_embeddings = job_feature_builder.encode(
                 job_df["content"].tolist(), batch_size=128
             )
             job_df.to_parquet(job_df_path, index=False)
             np.save(job_emb_path, job_embeddings)
 
-        job_feature_builder = FeatureBuilder()
         job_recommender = CareerRecommender(
             job_df=job_df,
             embedding_matrix=job_embeddings,
-            feature_builder=job_feature_builder,
+            feature_builder=feature_builder,   # reuse the shared encoder
         )
 
         _models_ready = True
@@ -146,10 +199,11 @@ async def lifespan(application: FastAPI):
 app = FastAPI(
     title="Career Path Recommender API",
     description="AI-powered career guidance system",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -229,6 +283,46 @@ class RecommendationResponse(BaseModel):
     career: CareerPredictionResponse
     universities: UniversitiesResponse
     jobs: JobsResponse
+    career_metadata: Optional["CareerMetadataDetail"] = None
+
+
+class CareerMetadataDetail(BaseModel):
+    """Dynamic career metadata served from MongoDB."""
+    career_id: str
+    title: str
+    salary_display: str = ""
+    growth_description: str = ""
+    growth_rate: str = ""
+    skills: List[str] = []
+    pathway: List[dict] = []
+
+
+class AlternativeMetadata(BaseModel):
+    """Metadata for an alternative career."""
+    career_id: str
+    title: str
+    salary_display: str = ""
+    growth_description: str = ""
+    growth_rate: str = ""
+    skills: List[str] = []
+    pathway: List[dict] = []
+
+
+class EnrichedRecommendationResponse(BaseModel):
+    """Recommendation response with full career metadata."""
+    career: CareerPredictionResponse
+    universities: UniversitiesResponse
+    jobs: JobsResponse
+    career_metadata: Optional[CareerMetadataDetail] = None
+    alternatives_metadata: List[AlternativeMetadata] = []
+
+
+class SuggestionsResponse(BaseModel):
+    """Dynamic suggestions for the assessment form."""
+    interests: List[str] = []
+    skills: List[str] = []
+    hobbies: List[str] = []
+    academic_streams: List[str] = []
 
 
 # ── Auth Models ───────────────────────────────────────────────────────────────
@@ -256,12 +350,15 @@ async def root():
     return {
         "status": "online",
         "message": "Career Path Recommender API is running",
-        "version": "1.0.0"
+        "version": "2.0.0"
     }
 
 
-@app.post("/api/recommend", response_model=RecommendationResponse)
-async def get_recommendations(profile: StudentProfileRequest):
+@app.post("/api/recommend", response_model=EnrichedRecommendationResponse)
+async def get_recommendations(
+    profile: StudentProfileRequest,
+    _user: dict = Depends(get_current_user),
+):
     """
     Get complete recommendations (career, universities, jobs) based on student profile.
     
@@ -290,6 +387,10 @@ async def get_recommendations(profile: StudentProfileRequest):
         }
         
         # ==================== Career Prediction ====================
+        assert career_predictor is not None, "Models not loaded"
+        assert university_recommender is not None, "Models not loaded"
+        assert job_recommender is not None, "Models not loaded"
+
         predictions = career_predictor.predict_top_k(
             user_profile, k=3, skills_text=profile.skills_text or ""
         )
@@ -333,8 +434,12 @@ async def get_recommendations(profile: StudentProfileRequest):
         )
         
         # ==================== Job Recommendations ====================
-        job_query = profile.skills_text or top_career
-        job_query = clean_text(job_query)
+        # Build a rich natural-language query for Sentence-BERT.
+        # Do NOT apply clean_text() here — NLTK stopword-stripping hurts SBERT.
+        # Combine skills_text with the predicted career so the semantic search
+        # finds jobs that match both the user's skills AND the career field.
+        job_query_parts = [p for p in [profile.skills_text, top_career] if p]
+        job_query = ", ".join(job_query_parts)
         
         jobs_df = job_recommender.recommend(job_query, top_k=10)
         
@@ -358,20 +463,53 @@ async def get_recommendations(profile: StudentProfileRequest):
             jobs=jobs_list[:5],  # Top 5 jobs
             total=len(jobs_list)
         )
-        
-        return RecommendationResponse(
+
+        # ==================== Career Metadata from MongoDB ====================
+        primary_meta = get_career_metadata(top_career)
+        meta_detail = None
+        if primary_meta:
+            meta_detail = CareerMetadataDetail(
+                career_id=primary_meta.get("career_id", top_career),
+                title=primary_meta.get("title", top_career),
+                salary_display=primary_meta.get("salary_display", ""),
+                growth_description=primary_meta.get("growth_description", ""),
+                growth_rate=primary_meta.get("growth_rate", ""),
+                skills=primary_meta.get("skills", []),
+                pathway=primary_meta.get("pathway", []),
+            )
+
+        alt_meta_list = []
+        for alt_field, _ in predictions[1:]:
+            alt_doc = get_career_metadata(str(alt_field))
+            if alt_doc:
+                alt_meta_list.append(AlternativeMetadata(
+                    career_id=alt_doc.get("career_id", str(alt_field)),
+                    title=alt_doc.get("title", str(alt_field)),
+                    salary_display=alt_doc.get("salary_display", ""),
+                    growth_description=alt_doc.get("growth_description", ""),
+                    growth_rate=alt_doc.get("growth_rate", ""),
+                    skills=alt_doc.get("skills", []),
+                    pathway=alt_doc.get("pathway", []),
+                ))
+
+        return EnrichedRecommendationResponse(
             career=career_response,
             universities=universities_response,
-            jobs=jobs_response
+            jobs=jobs_response,
+            career_metadata=meta_detail,
+            alternatives_metadata=alt_meta_list,
         )
         
     except Exception as e:
-        logger.error(f"Recommendation error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Recommendation error: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to generate recommendations")
 
 
 @app.post("/api/career-predict", response_model=CareerPredictionResponse)
-async def predict_career(profile: StudentProfileRequest):
+async def predict_career(
+    profile: StudentProfileRequest,
+    _user: dict = Depends(get_current_user),
+):
     """Predict career field based on student profile."""
     if not career_predictor:
         raise HTTPException(status_code=503, detail="Career predictor not initialized")
@@ -402,8 +540,8 @@ async def predict_career(profile: StudentProfileRequest):
             alternatives=alternatives,
         )
     except Exception as e:
-        logger.error(f"Career prediction error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Career prediction error: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to predict career")
 
 
 @app.post("/api/universities", response_model=UniversitiesResponse)
@@ -411,7 +549,8 @@ async def recommend_universities(
     query: str,
     country: Optional[str] = None,
     top_k: int = 10,
-    skills_text: str = ""
+    skills_text: str = "",
+    _user: dict = Depends(get_current_user),
 ):
     """Recommend universities based on career interests and location."""
     if not university_recommender:
@@ -446,12 +585,16 @@ async def recommend_universities(
             total=len(universities_list)
         )
     except Exception as e:
-        logger.error(f"University recommendation error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("University recommendation error: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to generate university recommendations")
 
 
 @app.post("/api/jobs", response_model=JobsResponse)
-async def recommend_jobs(query: str, top_k: int = 10):
+async def recommend_jobs(
+    query: str,
+    top_k: int = 10,
+    _user: dict = Depends(get_current_user),
+):
     """Recommend jobs based on skills and interests."""
     if not job_recommender or job_df is None:
         raise HTTPException(status_code=503, detail="Job recommender not initialized")
@@ -482,8 +625,8 @@ async def recommend_jobs(query: str, top_k: int = 10):
             total=len(jobs_list)
         )
     except Exception as e:
-        logger.error(f"Job recommendation error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Job recommendation error: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to generate job recommendations")
 
 
 @app.get("/health")
@@ -504,27 +647,14 @@ async def health_check():
 async def register(body: RegisterRequest):
     """Register a new user. Returns a JWT token."""
     try:
-        db = get_db()
-        users = db["users"]
-
-        existing = users.find_one({"email": body.email.lower()})
-        if existing:
-            raise HTTPException(status_code=409, detail="Email already registered")
-
-        hashed = hash_password(body.password)
-        result = users.insert_one({
-            "name": body.name,
-            "email": body.email.lower(),
-            "password_hash": hashed,
-            "created_at": datetime.now(timezone.utc),
-        })
-        user_id = str(result.inserted_id)
-        token = create_access_token(user_id, body.email.lower())
-        return AuthResponse(token=token, userId=user_id, name=body.name)
-    except HTTPException:
-        raise
+        service = AuthService(UserRepository(get_db()))
+        result = service.register(body.name, body.email, body.password)
+        return AuthResponse(token=result.token, userId=result.user_id, name=result.name)
+    except ValueError as e:
+        status = 409 if "already registered" in str(e) else 400
+        raise HTTPException(status_code=status, detail=str(e))
     except Exception as e:
-        logger.error(f"Register error: {e}")
+        logger.error("Register error: %s", e)
         raise HTTPException(status_code=500, detail="Registration failed")
 
 
@@ -532,21 +662,66 @@ async def register(body: RegisterRequest):
 async def login(body: LoginRequest):
     """Login with email and password. Returns a JWT token."""
     try:
-        db = get_db()
-        users = db["users"]
-
-        user = users.find_one({"email": body.email.lower()})
-        if not user or not verify_password(body.password, user["password_hash"]):
-            raise HTTPException(status_code=401, detail="Invalid email or password")
-
-        user_id = str(user["_id"])
-        token = create_access_token(user_id, body.email.lower())
-        return AuthResponse(token=token, userId=user_id, name=user.get("name", ""))
-    except HTTPException:
-        raise
+        service = AuthService(UserRepository(get_db()))
+        result = service.login(body.email, body.password)
+        return AuthResponse(token=result.token, userId=result.user_id, name=result.name)
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
     except Exception as e:
-        logger.error(f"Login error: {e}")
+        logger.error("Login error: %s", e)
         raise HTTPException(status_code=500, detail="Login failed")
+
+
+# ── Career Metadata Endpoints ────────────────────────────────────────────────
+
+@app.get("/api/careers", response_model=List[CareerMetadataDetail], tags=["careers"])
+async def list_careers():
+    """Return all career fields with their metadata (salary, skills, growth, pathway)."""
+    docs = get_all_careers()
+    return [
+        CareerMetadataDetail(
+            career_id=d.get("career_id", ""),
+            title=d.get("title", ""),
+            salary_display=d.get("salary_display", ""),
+            growth_description=d.get("growth_description", ""),
+            growth_rate=d.get("growth_rate", ""),
+            skills=d.get("skills", []),
+            pathway=d.get("pathway", []),
+        )
+        for d in docs
+    ]
+
+
+@app.get("/api/careers/{career_id}", response_model=CareerMetadataDetail, tags=["careers"])
+async def get_career_detail(career_id: str):
+    """Return metadata for a single career field."""
+    doc = get_career(career_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail=f"Career '{career_id}' not found")
+    return CareerMetadataDetail(
+        career_id=doc.get("career_id", career_id),
+        title=doc.get("title", career_id),
+        salary_display=doc.get("salary_display", ""),
+        growth_description=doc.get("growth_description", ""),
+        growth_rate=doc.get("growth_rate", ""),
+        skills=doc.get("skills", []),
+        pathway=doc.get("pathway", []),
+    )
+
+
+@app.get("/api/suggestions", response_model=SuggestionsResponse, tags=["suggestions"])
+async def get_suggestions():
+    """Return dynamic suggestion lists for the assessment form (interests, skills, hobbies, streams)."""
+    db = get_db()
+    doc = db["suggestions"].find_one({"doc_id": "main"}, {"_id": 0})
+    if not doc:
+        return SuggestionsResponse()
+    return SuggestionsResponse(
+        interests=doc.get("interests", []),
+        skills=doc.get("skills", []),
+        hobbies=doc.get("hobbies", []),
+        academic_streams=doc.get("academic_streams", []),
+    )
 
 
 if __name__ == "__main__":
