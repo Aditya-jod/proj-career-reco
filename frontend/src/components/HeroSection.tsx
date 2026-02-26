@@ -9,7 +9,7 @@ interface HeroSectionProps {
 
 const features = [
   { icon: Brain, title: "AI Analysis", desc: "Smart matching based on your unique profile" },
-  { icon: Target, title: "Precision Match", desc: "Tailored paths from Class 12 to career" },
+  { icon: Target, title: "Precision Match", desc: "Tailored paths based on your unique profile" },
   { icon: Rocket, title: "Growth Roadmap", desc: "Step-by-step pathway to professional success" },
 ];
 
@@ -23,13 +23,13 @@ const steps = [
   {
     step: "02",
     title: "AI Analyzes",
-    desc: "Our algorithm evaluates your strengths against 50+ career paths and industry data.",
+    desc: "Our algorithm evaluates your strengths against career paths and real industry data.",
     icon: Brain,
   },
   {
     step: "03",
     title: "Get Your Roadmap",
-    desc: "Receive ranked career matches with detailed pathways from Class 12 to professional success.",
+    desc: "Receive ranked career matches with detailed pathways to professional success.",
     icon: Rocket,
   },
 ];
@@ -112,7 +112,7 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
 
             <p className="animate-fade-up-delay-2 text-lg text-muted-foreground max-w-lg mb-10 leading-relaxed">
               Answer a few questions about your interests, skills, and academics.
-              Get personalized career recommendations — from Class 12 to professional success.
+              Get personalized career recommendations powered by real industry data.
             </p>
 
             <div className="animate-fade-up-delay-3 flex flex-wrap items-center gap-4">
