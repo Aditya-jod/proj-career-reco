@@ -1,11 +1,7 @@
-import sys
-import os
 import logging
 import numpy as np
 import pandas as pd
 from pathlib import Path
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from src.data.loader import load_config, load_raw_data
 from src.data.preprocessing import clean_text
