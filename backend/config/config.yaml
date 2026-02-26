@@ -3,7 +3,7 @@ paths:
   models: "models"
 
 datasets:
-  # Paths are relative to the project Dataset folder.
+  # Paths are relative to the project root (proj-career-reco/).
   # Override with absolute paths in your local config or environment if needed.
   career_path: "../Dataset/career path data/career_path_in_all_field.csv"
   student_reco: "../Dataset/career recommendation dataset/career_recommendation_dataset.csv"
@@ -12,9 +12,23 @@ datasets:
   world_universities: "../Dataset/world universities data/list_of_universities.csv"
   job_descriptions: "../Dataset/job dataset/job_descriptions.csv"
 
+  # Columns used by the ML pipeline — auto-detected from the CSV if omitted.
+  feature_columns:
+    - Mathematics_Score
+    - Science_Score
+    - Language_Arts_Score
+    - Social_Studies_Score
+    - Logical_Reasoning
+    - Creativity
+    - Communication
+    - Leadership
+    - Social_Skills
+  target_column: Primary_Career_Recommendation
+
 nlp:
   max_features: 5000
   embedding_dim: 384
+  sbert_model: "all-MiniLM-L6-v2"
 
 model:
   top_k: 5
@@ -23,3 +37,21 @@ model:
     skill_match: 0.5
     interest_match: 0.3
     cluster_similarity: 0.2
+
+  # Random-Forest hyper-parameters (CareerPredictor)
+  random_forest:
+    n_estimators: 300
+    random_state: 42
+    max_depth: null          # let trees grow fully
+    min_samples_split: 5
+    class_weight: "balanced" # compensate for any class imbalance
+
+  # Train / test split
+  test_size: 0.2
+  train_random_state: 42
+
+# Seed script settings
+seed:
+  job_sample_size: 200000
+  min_similarity: 0.15      # SBERT cosine threshold for job → career classification
+  top_skills: 15             # skills extracted per career field
