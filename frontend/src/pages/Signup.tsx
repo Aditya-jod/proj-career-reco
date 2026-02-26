@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus, Mail, Lock, User, ArrowRight, AlertCircle } from "lucide-react";
 import { registerUser } from "@/data/careerData";
+import { useAuth } from "@/context/AuthContext";
 
 const Signup = () => {
   const [name, setName] = useState("");
@@ -13,6 +14,7 @@ const Signup = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,10 +22,8 @@ const Signup = () => {
     setLoading(true);
     try {
       const { token, userId, name: userName } = await registerUser(name, email, password);
-      localStorage.setItem("auth_token", token);
-      localStorage.setItem("user_id", userId);
-      localStorage.setItem("user_name", userName);
-      navigate("/");
+      login(token, userId, userName);
+      navigate("/", { replace: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
