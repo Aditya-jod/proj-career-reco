@@ -22,7 +22,6 @@ dist/
 build/
 
 # ── Environments & Secrets ───────────────────────────────────────
-# Never commit real .env files
 .env
 .env.local
 .env.*.local
