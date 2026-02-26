@@ -82,3 +82,7 @@ data/raw/*
 data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+
+
+# ── Markdown docs (auto-generated) ───────────────────────────────
+reports/
