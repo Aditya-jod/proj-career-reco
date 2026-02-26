@@ -68,6 +68,14 @@ const Assessment = () => {
       .catch((error: unknown) => {
         const message =
           error instanceof Error ? error.message : "An unexpected error occurred.";
+
+        // If the token expired / was invalid, log the user out so the auth
+        // guard redirects them to the login page automatically.
+        if (message.includes("401")) {
+          logout();
+          return;
+        }
+
         setApiError(`Could not retrieve recommendations: ${message}`);
         setIsLoading(false);
       });
