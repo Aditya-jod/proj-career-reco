@@ -1,33 +1,36 @@
-import pandas as pd 
 import re
+import pandas as pd
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-try: 
-    nltk.data.find('corpora/stopwords')
-    nltk.data.find('corpora/wordnet')
-except LookupError:
-    nltk.download('stopwords')
-    nltk.download('wordnet')
+# ── Ensure NLTK data is present ───────────────────────────────────────────────
+for _corpus in ("corpora/stopwords", "corpora/wordnet"):
+    try:
+        nltk.data.find(_corpus)
+    except LookupError:
+        nltk.download(_corpus.split("/")[1], quiet=True)
 
-def clean_text(text):
+# ── Module-level singletons (SRP: initialised once, reused on every call) ─────
+# Creating these inside clean_text() would rebuild them for every single row,
+# which is catastrophic at 1.6 M job description rows.
+_STOP_WORDS: frozenset = frozenset(stopwords.words("english"))
+_LEMMATIZER: WordNetLemmatizer = WordNetLemmatizer()
+
+
+def clean_text(text: object) -> str:
+    """Lowercase, strip punctuation, remove stop-words, lemmatize."""
     if not isinstance(text, str):
         return ""
-    
+
     text = text.lower()
-
-    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
-
+    text = re.sub(r"[^a-zA-Z0-9\s]", "", text)
     tokens = text.split()
 
-    stop_words = set(stopwords.words('english'))
-    lemmatizer = WordNetLemmatizer()
-
     clean_tokens = [
-        lemmatizer.lemmatize(word)
-        for word in tokens 
-        if word not in stop_words
+        _LEMMATIZER.lemmatize(word)
+        for word in tokens
+        if word not in _STOP_WORDS
     ]
 
     return " ".join(clean_tokens)
