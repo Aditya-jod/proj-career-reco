@@ -6,6 +6,14 @@
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+/**
+ * Return an auth header object if a token is stored, otherwise empty.
+ */
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem("authToken");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 // ==================== Type Definitions ====================
 
 export interface CareerPath {
@@ -67,6 +75,33 @@ export interface RecommendationResult {
     jobs: Job[];
     total: number;
   };
+  // Dynamic career metadata from MongoDB (populated by seed script)
+  career_metadata?: {
+    career_id: string;
+    title: string;
+    salary_display: string;
+    growth_description: string;
+    growth_rate: string;
+    skills: string[];
+    pathway: { stage: string; detail: string }[];
+  } | null;
+  alternatives_metadata?: {
+    career_id: string;
+    title: string;
+    salary_display: string;
+    growth_description: string;
+    growth_rate: string;
+    skills: string[];
+    pathway: { stage: string; detail: string }[];
+  }[];
+}
+
+// ── Suggestions interface (fetched from /api/suggestions) ──────────────
+export interface SuggestionsData {
+  interests: string[];
+  skills: string[];
+  hobbies: string[];
+  academic_streams: string[];
 }
 
 // ==================== API Functions ====================
@@ -107,8 +142,11 @@ export async function getRecommendations(
   preferredLocation: string
 ): Promise<RecommendationResponse> {
   try {
-    // Combine interests, skills, and hobbies into a single text description
-    const skillsText = [...interests, ...skills, ...hobbies].join(", ");
+    // Combine stream, interests, skills, and hobbies into a single text description.
+    // academics (e.g. "Science (PCB)") is the single strongest signal — include it first.
+    const skillsText = [academics, ...interests, ...skills, ...hobbies]
+      .filter(Boolean)
+      .join(", ");
 
     // Build the student profile for API
     const profile: StudentProfile = {
@@ -129,11 +167,17 @@ export async function getRecommendations(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...authHeaders(),
       },
       body: JSON.stringify(profile),
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // Token expired or invalid — clear stale auth state
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("authUser");
+      }
       throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
 
@@ -175,68 +219,46 @@ export async function registerUser(name: string, email: string, password: string
 }
 
 /**
- * Transform API response into CareerPath objects for display
+ * Transform API response into CareerPath objects for display.
+ * All salary, growth, skills, and pathway data comes from the API
+ * (sourced from MongoDB) — nothing is hardcoded here.
  */
 function transformToCareerPaths(result: RecommendationResult): RecommendationResponse {
   const { career, universities, jobs } = result;
+  const meta = result.career_metadata;
+  const altMetas = result.alternatives_metadata ?? [];
 
   // Create a CareerPath for the primary career
   const primaryCareer: CareerPath = {
-    title: career.career_field,
+    title: meta?.title ?? career.career_field,
     field: career.career_field,
-    description: `Based on your profile, ${career.career_field} is an excellent match with ${(career.confidence * 100).toFixed(0)}% confidence. This field aligns with your academic strengths and skills.`,
+    description: `Based on your profile, ${meta?.title ?? career.career_field} is an excellent match with ${(career.confidence * 100).toFixed(0)}% confidence. This field aligns with your academic strengths and skills.`,
     matchScore: Math.round(career.confidence * 100),
-    avgSalary: "$60,000 - $150,000 (varies by role)",
-    growth: "Growing market demand",
-    skills: extractTopSkills([
-      ...universities.universities.slice(0, 3).map((u) => u.name),
-      ...jobs.jobs.slice(0, 3).map((j) => j.title),
-    ]),
-    pathway: [
-      {
-        stage: "Foundation Phase (Years 0-2)",
-        detail: `Begin your ${career.career_field} journey with foundational learning and entry-level positions.`,
-      },
-      {
-        stage: "Growth Phase (Years 2-5)",
-        detail: "Develop expertise and take on more responsibility in your chosen field.",
-      },
-      {
-        stage: "Mastery Phase (Years 5+)",
-        detail: "Become a leader and mentor in your field with advanced opportunities.",
-      },
-    ],
+    avgSalary: meta?.salary_display ?? "See detailed analysis",
+    growth: meta?.growth_description ?? "See market data",
+    skills: meta?.skills?.length ? meta.skills : [],
+    pathway: meta?.pathway?.length
+      ? meta.pathway
+      : [{ stage: "Getting Started", detail: `Explore opportunities in ${career.career_field}.` }],
   };
 
-  // Create CareerPath entries for alternative careers
+  // Create CareerPath entries for alternative careers using API metadata
   const alternativesCareers: CareerPath[] = career.alternatives.map(
-    ([field, confidence], index) => ({
-      title: field,
-      field: field,
-      description: `A strong alternative career path with ${(confidence * 100).toFixed(0)}% match score.`,
-      matchScore: Math.round(confidence * 100),
-      avgSalary: "$50,000 - $120,000",
-      growth: "Stable to growing",
-      skills: extractTopSkills([
-        `Study ${field}`,
-        `Learn ${field} fundamentals`,
-        `Build ${field} portfolio`,
-      ]),
-      pathway: [
-        {
-          stage: "Explore",
-          detail: `Learn more about ${field}`,
-        },
-        {
-          stage: "Learn",
-          detail: `Acquire key skills in ${field}`,
-        },
-        {
-          stage: "Execute",
-          detail: `Build a career in ${field}`,
-        },
-      ],
-    })
+    ([field, confidence], index) => {
+      const altMeta = altMetas[index];
+      return {
+        title: altMeta?.title ?? field,
+        field: field,
+        description: `A strong alternative career path with ${(confidence * 100).toFixed(0)}% match score.`,
+        matchScore: Math.round(confidence * 100),
+        avgSalary: altMeta?.salary_display ?? "See detailed analysis",
+        growth: altMeta?.growth_description ?? "See market data",
+        skills: altMeta?.skills?.length ? altMeta.skills : [],
+        pathway: altMeta?.pathway?.length
+          ? altMeta.pathway
+          : [{ stage: "Explore", detail: `Learn more about ${field}.` }],
+      };
+    }
   );
 
   return {
@@ -247,24 +269,47 @@ function transformToCareerPaths(result: RecommendationResult): RecommendationRes
 }
 
 /**
- * Extract top skills from a list of items
+ * Fetch dynamic suggestion lists from the backend (interests, skills, hobbies, streams).
+ * These are derived from the real datasets — not hardcoded.
  */
-function extractTopSkills(items: string[]): string[] {
-  const keywords = [
-    "Analysis",
-    "Design",
-    "Leadership",
-    "Communication",
-    "Technical",
-    "Creative",
-    "Problem Solving",
-    "Management",
-  ];
+export async function fetchSuggestions(): Promise<SuggestionsData> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/suggestions`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to fetch suggestions:", error);
+    // Return empty defaults so the form still works without suggestions
+    return { interests: [], skills: [], hobbies: [], academic_streams: [] };
+  }
+}
 
-  // Return keywords that appear or a subset of items
-  return keywords.filter((k) =>
-    items.some((item) => item.toLowerCase().includes(k.toLowerCase()))
-  );
+/**
+ * Fetch all career metadata from the backend.
+ */
+export async function fetchCareers(): Promise<CareerPath[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/careers`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.map((c: any) => ({
+      title: c.title ?? c.career_id,
+      field: c.career_id,
+      description: "",
+      matchScore: 0,
+      avgSalary: c.salary_display ?? "",
+      growth: c.growth_description ?? "",
+      skills: c.skills ?? [],
+      pathway: c.pathway ?? [],
+    }));
+  } catch (error) {
+    console.error("Failed to fetch careers:", error);
+    return [];
+  }
 }
 
 /**
@@ -276,6 +321,7 @@ export async function predictCareer(profile: StudentProfile) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...authHeaders(),
       },
       body: JSON.stringify(profile),
     });
@@ -315,6 +361,7 @@ export async function getUniversities(
       `${API_BASE_URL}/api/universities?${params}`,
       {
         method: "POST",
+        headers: { ...authHeaders() },
       }
     );
 
@@ -341,6 +388,7 @@ export async function getJobs(query: string, topK: number = 10) {
 
     const response = await fetch(`${API_BASE_URL}/api/jobs?${params}`, {
       method: "POST",
+      headers: { ...authHeaders() },
     });
 
     if (!response.ok) {
