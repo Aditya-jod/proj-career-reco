@@ -313,9 +313,9 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
           >
             <img src={heroBg} alt="" className="w-full h-full object-cover" />
           </div>
-          {/* Fixed overlays — stay aligned with section, not parallax */}
-          <div className="absolute inset-0 bg-gradient-to-br from-background/40 via-background/25 to-primary/5" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
+          {/* Subtle tint overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-primary/10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
         </div>
 
         {/* Animated orbs */}
@@ -381,13 +381,13 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
         </div>
 
         {/* Bottom fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/30 to-transparent" />
       </section>
 
-      {/* ════════════════════════ STATS ════════════════════════ */}
-      <section className="relative py-20 px-6 overflow-hidden">
-        {/* Parallax gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/8 via-background to-accent/8" />
+      {/* ════════════════════════ STATS — full-bleed band ════════════════════ */}
+      <section className="relative overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/8 via-transparent to-accent/8" />
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute w-[600px] h-[600px] rounded-full bg-primary/5 blur-[200px] -top-60 left-1/4 animate-pulse-slow" />
           <div className="absolute w-[400px] h-[400px] rounded-full bg-accent/5 blur-[160px] -bottom-40 right-1/4 animate-pulse-slow" style={{ animationDelay: '2s' }} />
@@ -396,27 +396,34 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
-        <div className="relative z-10 max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-6">
+        <div className="relative z-10 flex items-stretch justify-center">
           {stats.map((stat, i) => (
-            <ScrollReveal key={stat.label} delay={i * 0.12} className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <stat.icon className="w-7 h-7 text-primary" />
-              </div>
-              <div className="text-5xl sm:text-6xl lg:text-7xl font-display font-bold text-foreground mb-2 tracking-tight">
+            <ScrollReveal
+              key={stat.label}
+              delay={i * 0.1}
+              className="flex-1 flex flex-col items-center justify-center py-14 sm:py-20 relative group"
+            >
+              {/* Vertical divider between items */}
+              {i > 0 && (
+                <div className="absolute left-0 top-[20%] bottom-[20%] w-px bg-gradient-to-b from-transparent via-primary/25 to-transparent" />
+              )}
+              <div className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-display font-extrabold tracking-tighter bg-gradient-to-b from-foreground to-foreground/60 bg-clip-text text-transparent group-hover:from-primary group-hover:to-glow transition-all duration-500 leading-none">
                 <CountUp
                   target={stat.value}
                   suffix={stat.suffix}
                   decimals={stat.decimals}
                 />
               </div>
-              <div className="text-base sm:text-lg text-muted-foreground font-medium">{stat.label}</div>
+              <div className="mt-2 sm:mt-3 text-sm sm:text-base md:text-lg text-muted-foreground font-medium uppercase tracking-widest">
+                {stat.label}
+              </div>
             </ScrollReveal>
           ))}
         </div>
       </section>
 
-      {/* ════════════════════════ CAREER FIELDS ════════════════════════ */}
-      <section className="py-20 px-6 bg-background relative overflow-hidden">
+      {/* ════════════════════════ CAREER FIELDS — pill cloud ═════════════════ */}
+      <section className="py-20 px-6 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute w-[500px] h-[500px] rounded-full bg-primary/[0.03] blur-[180px] top-0 -right-60" />
         </div>
@@ -432,19 +439,20 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
             </p>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
             {careerFields.map((field, i) => (
-              <ScrollReveal key={field.id} delay={i * 0.08}>
-                <div className="group glass-card p-6 h-full hover:border-primary/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_hsl(var(--primary)/0.2)] cursor-default">
-                  <div className="w-12 h-12 mb-4 rounded-xl bg-gradient-to-br from-primary/15 to-accent/15 flex items-center justify-center group-hover:scale-110 group-hover:shadow-[0_0_20px_hsl(var(--primary)/0.3)] transition-all duration-300">
-                    <field.icon className="w-6 h-6 text-primary" />
+              <ScrollReveal key={field.id} delay={i * 0.06}>
+                <div className="group relative px-5 py-3 sm:px-7 sm:py-4 rounded-full border border-border/60 bg-card/50 backdrop-blur-sm cursor-default transition-all duration-300 hover:border-primary/60 hover:bg-primary/10 hover:shadow-[0_0_30px_hsl(var(--primary)/0.15)] hover:-translate-y-0.5">
+                  <div className="flex items-center gap-2.5">
+                    <field.icon className="w-5 h-5 text-primary transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6" />
+                    <span className="font-display font-semibold text-foreground text-sm sm:text-base group-hover:text-primary transition-colors duration-300">
+                      {field.title}
+                    </span>
                   </div>
-                  <h3 className="font-display font-semibold text-foreground mb-1 group-hover:text-primary transition-colors duration-300">
-                    {field.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  {/* Tooltip description on hover */}
+                  <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-lg bg-card border border-border text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-lg z-20">
                     {field.desc}
-                  </p>
+                  </div>
                 </div>
               </ScrollReveal>
             ))}
@@ -455,7 +463,7 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
       {/* ════════════════════════ HOW IT WORKS ════════════════════════ */}
       <section id="how-it-works" className="py-20 px-6 relative overflow-hidden">
         {/* Gradient background + decorative orbs — parallax */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/20" />
         <div
           ref={howItWorksParallax.ref}
           className="absolute inset-0 overflow-hidden pointer-events-none will-change-transform"
@@ -508,7 +516,7 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
         </div>
       </section>
 
-      {/* ════════════════════════ TESTIMONIALS ════════════════════════ */}
+      {/* ════════════════════════ TESTIMONIALS — scrolling ticker ═════════════ */}
       <section className="py-20 px-6 relative overflow-hidden">
         {/* Subtle gradient for visual flow */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.03] to-transparent" />
@@ -526,38 +534,42 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
               career choices.
             </p>
           </ScrollReveal>
+        </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            {testimonials.map((t, i) => (
-              <ScrollReveal key={t.name} delay={i * 0.12}>
-                <div className="group glass-card p-6 h-full flex flex-col hover:border-accent/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_30px_hsl(var(--accent)/0.15)]">
-                  {/* Stars */}
-                  <div className="flex gap-0.5 mb-4">
-                    {Array.from({ length: t.rating }, (_, j) => (
-                      <Star
-                        key={j}
-                        className="w-4 h-4 fill-accent text-accent"
-                      />
-                    ))}
+        {/* Auto-scrolling testimonial ticker */}
+        <div className="relative z-10 overflow-hidden">
+          {/* Fade edges */}
+          <div className="absolute inset-y-0 left-0 w-20 sm:w-32 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-y-0 right-0 w-20 sm:w-32 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+
+          <div className="animate-ticker flex gap-6 w-max">
+            {/* Duplicate testimonials for seamless infinite scroll */}
+            {[...testimonials, ...testimonials].map((t, i) => (
+              <div
+                key={`${t.name}-${i}`}
+                className="w-[340px] sm:w-[400px] shrink-0 rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm p-6 flex flex-col hover:border-primary/30 transition-colors duration-300"
+              >
+                {/* Stars */}
+                <div className="flex gap-0.5 mb-3">
+                  {Array.from({ length: t.rating }, (_, j) => (
+                    <Star key={j} className="w-4 h-4 fill-accent text-accent" />
+                  ))}
+                </div>
+                {/* Quote */}
+                <p className="text-foreground/90 leading-relaxed mb-5 italic flex-1">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                {/* Author */}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-glow flex items-center justify-center text-primary-foreground text-sm font-bold font-display shrink-0">
+                    {t.initials}
                   </div>
-                  {/* Quote */}
-                  <p className="text-foreground/90 leading-relaxed mb-6 italic flex-1">
-                    &ldquo;{t.quote}&rdquo;
-                  </p>
-                  {/* Author */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-glow flex items-center justify-center text-primary-foreground text-sm font-bold font-display shrink-0">
-                      {t.initials}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {t.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{t.role}</p>
-                    </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">{t.role}</p>
                   </div>
                 </div>
-              </ScrollReveal>
+              </div>
             ))}
           </div>
         </div>
@@ -566,7 +578,7 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
       {/* ════════════════════════ CLOSING CTA ════════════════════════ */}
       <section className="py-24 px-6 relative overflow-hidden">
         {/* Background — parallax */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/20" />
         <div
           ref={ctaParallax.ref}
           className="absolute inset-0 overflow-hidden pointer-events-none will-change-transform"
