@@ -141,7 +141,7 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
   const [scores, setScores] = useState<ScoreFields>(defaultScores);
   const [preferredLocation, setPreferredLocation] = useState("");
 
-  // ── Hardcoded suggestions (no backend fetch needed) ────────────────
+  // ── Hardcoded suggestions ────────────────
   const suggestions: SuggestionsData = SUGGESTIONS;
 
   const setScore = (key: keyof ScoreFields, value: number) => {
