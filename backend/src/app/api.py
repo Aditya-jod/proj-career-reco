@@ -317,14 +317,6 @@ class EnrichedRecommendationResponse(BaseModel):
     alternatives_metadata: List[AlternativeMetadata] = []
 
 
-class SuggestionsResponse(BaseModel):
-    """Dynamic suggestions for the assessment form."""
-    interests: List[str] = []
-    skills: List[str] = []
-    hobbies: List[str] = []
-    academic_streams: List[str] = []
-
-
 # ── Auth Models ───────────────────────────────────────────────────────────────
 
 class RegisterRequest(BaseModel):
@@ -706,21 +698,6 @@ async def get_career_detail(career_id: str):
         growth_rate=doc.get("growth_rate", ""),
         skills=doc.get("skills", []),
         pathway=doc.get("pathway", []),
-    )
-
-
-@app.get("/api/suggestions", response_model=SuggestionsResponse, tags=["suggestions"])
-async def get_suggestions():
-    """Return dynamic suggestion lists for the assessment form (interests, skills, hobbies, streams)."""
-    db = get_db()
-    doc = db["suggestions"].find_one({"doc_id": "main"}, {"_id": 0})
-    if not doc:
-        return SuggestionsResponse()
-    return SuggestionsResponse(
-        interests=doc.get("interests", []),
-        skills=doc.get("skills", []),
-        hobbies=doc.get("hobbies", []),
-        academic_streams=doc.get("academic_streams", []),
     )
 
 
