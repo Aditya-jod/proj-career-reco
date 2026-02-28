@@ -96,13 +96,95 @@ export interface RecommendationResult {
   }[];
 }
 
-// ── Suggestions interface (fetched from /api/suggestions) ──────────────
+// ── Suggestions interface ──────────────────────────────────────────────
 export interface SuggestionsData {
   interests: string[];
   skills: string[];
   hobbies: string[];
   academic_streams: string[];
 }
+
+/**
+ * Hardcoded suggestion lists for the assessment form.
+ * These are curated from the project datasets and kept static
+ * to avoid extra DB complexity for a college project.
+ */
+export const SUGGESTIONS: SuggestionsData = {
+  academic_streams: [
+    "Science (PCM)",
+    "Science (PCB)",
+    "Commerce",
+    "Arts / Humanities",
+    "Computer Science",
+    "Vocational / Diploma",
+  ],
+  interests: [
+    "Technology",
+    "Healthcare",
+    "Business",
+    "Finance",
+    "Education",
+    "Creative Arts",
+    "Law",
+    "Government",
+    "Social Work",
+    "Engineering",
+    "Data Science",
+    "Marketing",
+    "Design",
+    "Music",
+    "Sports",
+    "Research",
+    "Entrepreneurship",
+    "Environmental Science",
+    "Media & Communication",
+    "Architecture",
+  ],
+  skills: [
+    "Problem Solving",
+    "Programming",
+    "Communication",
+    "Leadership",
+    "Critical Thinking",
+    "Data Analysis",
+    "Teamwork",
+    "Public Speaking",
+    "Writing",
+    "Project Management",
+    "Research",
+    "Creativity",
+    "Negotiation",
+    "Time Management",
+    "Analytical Skills",
+    "Mathematics",
+    "Design Thinking",
+    "Technical Drawing",
+    "Financial Literacy",
+    "Machine Learning",
+  ],
+  hobbies: [
+    "Reading",
+    "Chess",
+    "Robotics",
+    "Coding",
+    "Painting",
+    "Blogging",
+    "Photography",
+    "Sports",
+    "Volunteering",
+    "Debating",
+    "Music",
+    "Gaming",
+    "Gardening",
+    "Cooking",
+    "Travelling",
+    "Dancing",
+    "Writing",
+    "DIY Projects",
+    "Film Making",
+    "Yoga & Meditation",
+  ],
+};
 
 // ==================== API Functions ====================
 
