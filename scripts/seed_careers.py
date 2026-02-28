@@ -1,5 +1,5 @@
 """
-Seed the MongoDB ``careers`` and ``suggestions`` collections from real datasets.
+Seed the MongoDB ``careers`` collection from real datasets.
 
 **No manual keyword lists or field mappings.**  Job → career classification
 and career-path field → career-class mapping are both driven by SBERT
@@ -419,104 +419,7 @@ def seed(*, sample_size: int = 200_000, min_similarity: float = 0.15) -> None:
     print("\n✅  Seed complete — all career metadata stored in MongoDB.")
 
 
-# ── Seed suggestions ────────────────────────────────────────────────────────
-
-def seed_suggestions() -> None:
-    """
-    Extract suggestion lists from the career-recommendation dataset and
-    store them in a ``suggestions`` collection so the frontend can fetch
-    interests, skills, hobbies, and academic streams dynamically.
-    """
-    print("\n🔄  Seeding suggestions …")
-    db = __import__("src.db.mongo", fromlist=["get_db"]).get_db()
-    col = db["suggestions"]
-    col.delete_many({})
-
-    # ── Extract from career path dataset ─────────────────────────────────────
-    if _CAREER_PATH_CSV.exists():
-        cp_df = pd.read_csv(_CAREER_PATH_CSV)
-        cp_df.columns = [c.strip() for c in cp_df.columns]
-        # Unique careers as interest suggestions
-        all_careers = sorted(cp_df["Career"].str.strip().unique().tolist())
-    else:
-        all_careers = []
-
-    # ── Extract from career recommendation dataset ───────────────────────────
-    if _CAREER_RECO_CSV.exists():
-        cr_df = pd.read_csv(_CAREER_RECO_CSV, nrows=5000)
-        cr_df.columns = [c.strip() for c in cr_df.columns]
-
-        # Academic/activity columns give us skill/hobby insights
-        participation_cols = [
-            c for c in cr_df.columns
-            if "Participation" in c or "Involvement" in c
-        ]
-    else:
-        cr_df = pd.DataFrame()
-        participation_cols = []
-
-    # ── Extract from job descriptions for skills ─────────────────────────────
-    if _JOB_CSV.exists():
-        jd_df = pd.read_csv(
-            _JOB_CSV, usecols=["skills"], nrows=50_000,
-        )
-        all_skills_raw = _extract_skills(jd_df["skills"], top_n=40)
-    else:
-        all_skills_raw = []
-
-    # ── Build suggestion documents ───────────────────────────────────────────
-
-    # Interest suggestions — derived from career names + career titles
-    interest_list = sorted(set(
-        all_careers[:30] + list(CAREER_TITLES.values())
-    ))
-
-    # Skill suggestions — from real job postings
-    skill_list = all_skills_raw if all_skills_raw else []
-
-    # Hobby suggestions — derived from dataset participation columns
-    hobby_labels = []
-    for col_name in participation_cols:
-        clean = (
-            col_name
-            .replace("_Participation", "")
-            .replace("_Involvement", "")
-            .replace("_", " ")
-        )
-        if clean not in hobby_labels:
-            hobby_labels.append(clean)
-
-    # Academic streams — from the dataset's score columns
-    academic_streams = []
-    if not cr_df.empty:
-        score_cols = [
-            c for c in cr_df.columns
-            if c.endswith("_Score") and c not in [
-                "Mathematics_Score", "Science_Score",
-                "Language_Arts_Score", "Social_Studies_Score",
-            ]
-        ]
-        for sc in score_cols:
-            label = sc.replace("_Score", "").replace("_", " ")
-            academic_streams.append(label)
-
-    suggestions_doc = {
-        "doc_id": "main",
-        "interests": interest_list,
-        "skills": skill_list,
-        "hobbies": hobby_labels,
-        "academic_streams": academic_streams,
-    }
-    col.update_one({"doc_id": "main"}, {"$set": suggestions_doc}, upsert=True)
-    print(f"   interests:  {len(interest_list)}")
-    print(f"   skills:     {len(skill_list)}")
-    print(f"   hobbies:    {len(hobby_labels)}")
-    print(f"   streams:    {len(academic_streams)}")
-    print("✅  Suggestions seeded.")
-
-
 # ── CLI entry point ─────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     seed()
-    seed_suggestions()
