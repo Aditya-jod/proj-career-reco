@@ -380,14 +380,17 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
           </div>
         </div>
 
-        {/* Bottom fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/30 to-transparent" />
+        {/* Bottom fade — blends hero into the transition bridge */}
+        <div className="absolute bottom-0 left-0 right-0 h-56 bg-gradient-to-t from-[hsl(160_25%_12%)] via-[hsl(160_25%_12%_/_0.4)] to-transparent" />
       </section>
+
+      {/* ═══════════════ Dark-to-light gradient bridge ═══════════════ */}
+      <div className="-mt-px h-28 bg-gradient-to-b from-[hsl(160_25%_12%)] via-primary/8 to-transparent" />
 
       {/* ════════════════════════ STATS — full-bleed band ════════════════════ */}
       <section className="relative overflow-hidden">
         {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/8 via-transparent to-accent/8" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/12 via-primary/[0.04] to-accent/10" />
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute w-[600px] h-[600px] rounded-full bg-primary/5 blur-[200px] -top-60 left-1/4 animate-pulse-slow" />
           <div className="absolute w-[400px] h-[400px] rounded-full bg-accent/5 blur-[160px] -bottom-40 right-1/4 animate-pulse-slow" style={{ animationDelay: '2s' }} />
@@ -423,7 +426,7 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
       </section>
 
       {/* ════════════════════════ CAREER FIELDS — pill cloud ═════════════════ */}
-      <section className="py-20 px-6 relative overflow-hidden">
+      <section className="py-20 px-6 relative overflow-hidden bg-gradient-to-b from-primary/[0.04] via-transparent to-transparent">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute w-[500px] h-[500px] rounded-full bg-primary/[0.03] blur-[180px] top-0 -right-60" />
         </div>
