@@ -265,20 +265,20 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
       <section className="relative min-h-screen flex items-center overflow-hidden">
         {/* Nav */}
         <nav className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-          <span className="font-display font-bold text-xl text-foreground flex items-center gap-2">
+          <span className="font-display font-bold text-xl text-white flex items-center gap-2">
             <Compass className="w-6 h-6 text-primary" />
             CareerPath
           </span>
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <>
-                <span className="text-sm text-muted-foreground hidden sm:inline">
+                <span className="text-sm text-white/70 hidden sm:inline">
                   Hi,{" "}
-                  <span className="font-medium text-foreground">{user?.name}</span>
+                  <span className="font-medium text-white">{user?.name}</span>
                 </span>
                 <button
                   onClick={logout}
-                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl border border-border text-foreground hover:bg-muted hover:text-destructive transition-all duration-300"
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl border border-white/30 text-white hover:bg-white/10 hover:text-red-400 transition-all duration-300"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   Log Out
@@ -288,7 +288,7 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
               <>
                 <Link
                   to="/login"
-                  className="px-4 py-2 text-sm font-medium rounded-xl border border-primary text-foreground hover:bg-primary/10 hover:text-primary transition-all duration-300 hover:shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
+                  className="px-4 py-2 text-sm font-medium rounded-xl border border-white/30 text-white hover:bg-white/10 hover:text-primary transition-all duration-300 hover:shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
                 >
                   Log In
                 </Link>
@@ -338,14 +338,14 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
           </div>
 
           <h1 className="animate-fade-up-delay-1 text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-display font-bold leading-[1.05] tracking-tight mb-6 max-w-4xl">
-            <span className="text-foreground">Discover Your</span>
+            <span className="text-white">Discover Your</span>
             <br />
             <span className="bg-gradient-to-r from-primary via-glow to-accent bg-clip-text text-transparent">
               Dream Career
             </span>
           </h1>
 
-          <p className="animate-fade-up-delay-2 text-lg sm:text-xl text-muted-foreground max-w-2xl mb-10 leading-relaxed">
+          <p className="animate-fade-up-delay-2 text-lg sm:text-xl text-white/70 max-w-2xl mb-10 leading-relaxed">
             Answer a few questions about your interests, skills, and academics.
             Get AI-powered career recommendations backed by real industry data.
           </p>
@@ -362,7 +362,7 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
             </button>
             <button
               onClick={scrollToHowItWorks}
-              className="px-6 py-4 rounded-2xl border border-primary/40 text-foreground hover:border-primary hover:bg-primary/10 font-medium transition-all duration-300 flex items-center gap-2 hover:shadow-[0_0_25px_hsl(var(--primary)/0.2)]"
+              className="px-6 py-4 rounded-2xl border border-white/30 text-white hover:border-primary hover:bg-primary/10 font-medium transition-all duration-300 flex items-center gap-2 hover:shadow-[0_0_25px_hsl(var(--primary)/0.2)]"
             >
               See How It Works
               <ChevronDown className="w-4 h-4" />
@@ -373,10 +373,10 @@ const HeroSection = ({ onStart }: HeroSectionProps) => {
         {/* Scroll indicator */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
           <div className="flex flex-col items-center gap-2 animate-bounce-slow">
-            <span className="text-xs text-muted-foreground/60 uppercase tracking-widest">
+            <span className="text-xs text-white/40 uppercase tracking-widest">
               Scroll
             </span>
-            <ChevronDown className="w-5 h-5 text-muted-foreground/60" />
+            <ChevronDown className="w-5 h-5 text-white/40" />
           </div>
         </div>
 
