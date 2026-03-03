@@ -393,11 +393,11 @@ cp .env.example .env
 
 Required variables in `backend/.env`:
 ```env
-MONGODB_URI=mongodb://localhost:27017/
-MONGODB_DB_NAME=career_recommender
+MONGODB_URI=<your-mongodb-uri>
+MONGODB_DB_NAME=<your-database-name>
 JWT_SECRET_KEY=your-secret-key-here
-JWT_ALGORITHM=HS256
-JWT_EXPIRE_HOURS=48
+JWT_ALGORITHM=<your-jwt-algorithm>
+JWT_EXPIRE_HOURS=<jwt-expire-hours>
 ```
 
 **Step 4 — Train models (first time only):**
