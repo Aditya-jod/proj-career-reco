@@ -614,14 +614,6 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
-## Contributors
-
-| Name | Role |
-|------|------|
-| *[Your Name]* | Full-stack development, ML pipeline, system architecture |
-
----
-
 ## License
 
 This project is developed as a college final-year project. Open source for educational purposes.
