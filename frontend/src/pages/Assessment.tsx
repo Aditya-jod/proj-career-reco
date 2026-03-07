@@ -89,7 +89,6 @@ const Assessment = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Sticky top nav */}
       <nav className="sticky top-0 z-30 flex items-center justify-between px-6 py-3 border-b border-border bg-background/80 backdrop-blur-md">
         <button
           onClick={() => navigate("/")}
@@ -117,9 +116,7 @@ const Assessment = () => {
         </div>
       </nav>
 
-      {/* Main content */}
       <main className="flex-1">
-        {/* Loading state */}
         {isLoading && (
           <section className="py-24 px-4 text-center">
             <div className="max-w-md mx-auto">
@@ -134,7 +131,6 @@ const Assessment = () => {
           </section>
         )}
 
-        {/* Error banner */}
         {apiError && !isLoading && (
           <section className="py-6 px-4">
             <div className="max-w-xl mx-auto rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm flex items-start justify-between gap-4">
@@ -152,12 +148,10 @@ const Assessment = () => {
           </section>
         )}
 
-        {/* Assessment form */}
         {!isLoading && !results && (
           <AssessmentForm onSubmit={handleSubmit} />
         )}
 
-        {/* Results */}
         {!isLoading && results && (
           <CareerResults
             careers={results.careers}
@@ -168,7 +162,6 @@ const Assessment = () => {
         )}
       </main>
 
-      {/* Footer */}
       <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border">
         <p>Career Path Recommender — Helping students find their future.</p>
       </footer>

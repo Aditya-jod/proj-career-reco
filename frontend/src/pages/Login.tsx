@@ -36,14 +36,12 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background px-4">
-      {/* Background decoration */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute w-[500px] h-[500px] rounded-full bg-primary/8 blur-[120px] -top-40 -left-40" />
         <div className="absolute w-[400px] h-[400px] rounded-full bg-accent/8 blur-[100px] -bottom-20 -right-20" />
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        {/* Logo / Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-glow mb-4">
             <LogIn className="w-7 h-7 text-primary-foreground" />
@@ -52,7 +50,6 @@ const Login = () => {
           <p className="text-muted-foreground mt-2">Log in to continue your career journey</p>
         </div>
 
-        {/* Card */}
         <div className="glass-card p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
