@@ -18,8 +18,6 @@ from src.auth.auth import create_access_token, hash_password, verify_password
 logger = logging.getLogger(__name__)
 
 
-# ── Data transfer objects ─────────────────────────────────────────────────────
-
 @dataclass(frozen=True)
 class AuthResult:
     """Returned by AuthService on success. Immutable."""
@@ -28,7 +26,6 @@ class AuthResult:
     name: str
 
 
-# ── Repository (SRP: only responsible for user persistence) ──────────────────
 
 class UserRepository:
     """
@@ -59,7 +56,6 @@ class UserRepository:
         return str(result.inserted_id)
 
 
-# ── Service (SRP: orchestrates auth business rules) ───────────────────────────
 
 class AuthService:
     """

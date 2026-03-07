@@ -19,7 +19,6 @@ from jose import JWTError, jwt
 
 logger = logging.getLogger(__name__)
 
-# ── Config ────────────────────────────────────────────────────────────────────
 _secret = os.getenv("JWT_SECRET_KEY")
 if not _secret:
     raise RuntimeError(
@@ -31,11 +30,9 @@ SECRET_KEY: str = _secret
 ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
 EXPIRE_HOURS: int = int(os.getenv("JWT_EXPIRE_HOURS", "48"))
 
-# ── Bearer scheme (used by FastAPI's Depends) ─────────────────────────────────
 _bearer_scheme = HTTPBearer()
 
 
-# ── Password helpers ──────────────────────────────────────────────────────────
 
 def hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
@@ -45,7 +42,6 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
-# ── JWT helpers ───────────────────────────────────────────────────────────────
 
 def create_access_token(user_id: str, email: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(hours=EXPIRE_HOURS)
@@ -60,7 +56,6 @@ def decode_token(token: str) -> Optional[dict]:
         return None
 
 
-# ── FastAPI dependency — inject into any protected route ──────────────────────
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
