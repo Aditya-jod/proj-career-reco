@@ -15,7 +15,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-# ── resolve venv path and load .env ───────────────────────────────────────────
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "backend"))
 
@@ -32,7 +32,6 @@ MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:44551/")
 DB_NAME   = os.getenv("MONGODB_DB_NAME", "career_recommender")
 
 
-# ── Schema validators (JSON Schema) ──────────────────────────────────────────
 
 USER_SCHEMA = {
     "$jsonSchema": {
@@ -79,13 +78,11 @@ def setup() -> None:
     print(f"\n🔗 Connecting to {MONGO_URI}  db={DB_NAME} …")
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
 
-    # Verify connection
     client.admin.command("ping")
     print("   Connected ✓\n")
 
     db = client[DB_NAME]
 
-    # ── Collections ──────────────────────────────────────────────────────────
     print("📁 Setting up collections …")
 
     create_or_update(db, "users", USER_SCHEMA)
@@ -99,28 +96,23 @@ def setup() -> None:
 
     create_or_update(db, "recommendations", RECOMMENDATION_SCHEMA)
 
-    # ── Indexes ───────────────────────────────────────────────────────────────
     print("\n🗂️  Creating indexes …")
 
-    # users: unique email
     db["users"].create_index([("email", ASCENDING)], unique=True, name="idx_users_email")
     print("  ✅ users.email  (unique)")
 
-    # sessions: user_id lookup + TTL on expires_at
     db["sessions"].create_index([("user_id", ASCENDING)],  name="idx_sessions_user_id")
     db["sessions"].create_index([("expires_at", ASCENDING)], expireAfterSeconds=0,
                                  name="idx_sessions_ttl")
     print("  ✅ sessions.user_id  (regular)")
     print("  ✅ sessions.expires_at  (TTL)")
 
-    # recommendations: user_id + created_at
     db["recommendations"].create_index(
         [("user_id", ASCENDING), ("created_at", ASCENDING)],
         name="idx_reco_user_created",
     )
     print("  ✅ recommendations.(user_id, created_at)")
 
-    # ── Sample admin user ─────────────────────────────────────────────────────
     print("\n👤 Ensuring demo admin user …")
     try:
         import importlib.util, pathlib

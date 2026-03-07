@@ -26,7 +26,7 @@ from typing import Dict, List
 
 import pandas as pd
 
-# ── Resolve project root so imports work regardless of CWD ──────────────────
+
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _BACKEND_ROOT = _PROJECT_ROOT / "backend"
 sys.path.insert(0, str(_BACKEND_ROOT))
@@ -37,7 +37,7 @@ from src.models.config import (                                          # noqa:
     CAREER_TITLES,
 )
 
-# ── Dataset paths (relative to project root) ────────────────────────────────
+
 _DATASET_ROOT = _PROJECT_ROOT.parent / "Dataset"
 _JOB_CSV = _DATASET_ROOT / "job dataset" / "job_descriptions.csv"
 _CAREER_PATH_CSV = _DATASET_ROOT / "career path data" / "career_path_in_all_field.csv"
@@ -48,7 +48,6 @@ _CAREER_RECO_CSV = (
 )
 
 
-# ── Lazy-loaded SBERT model ────────────────────────────────────────────────
 _sbert_model = None
 
 
@@ -62,7 +61,6 @@ def _get_sbert():
     return _sbert_model
 
 
-# ── SBERT-based job classification ──────────────────────────────────────────
 
 def _classify_jobs_sbert(
     titles: pd.Series,
@@ -116,7 +114,6 @@ def _classify_jobs_sbert(
     return results
 
 
-# ── SBERT-based career-path field mapping ───────────────────────────────────
 
 def _auto_map_fields(
     dataset_fields: List[str],
@@ -151,7 +148,6 @@ def _auto_map_fields(
     return mapping
 
 
-# ── Helper functions ────────────────────────────────────────────────────────
 
 def _parse_salary(s: str) -> tuple[int | None, int | None]:
     """Parse strings like '$59K-$99K' → (59000, 99000)."""
@@ -306,7 +302,6 @@ def _compute_growth(job_count: int, total_jobs: int) -> tuple[str, str]:
     return "emerging", f"Niche / emerging — {share:.1%} of job postings"
 
 
-# ── Main seed function ──────────────────────────────────────────────────────
 
 def seed(*, sample_size: int = 200_000, min_similarity: float = 0.15) -> None:
     """
@@ -321,7 +316,7 @@ def seed(*, sample_size: int = 200_000, min_similarity: float = 0.15) -> None:
     """
     print("🔄  Loading datasets …")
 
-    # ── Load jobs (sampled for speed) ────────────────────────────────────────
+
     if _JOB_CSV.exists():
         jobs_df = pd.read_csv(_JOB_CSV, usecols=[
             "Job Title", "Role", "Salary Range", "skills",
@@ -333,7 +328,7 @@ def seed(*, sample_size: int = 200_000, min_similarity: float = 0.15) -> None:
         print(f"   ⚠  Job dataset not found at {_JOB_CSV}")
         jobs_df = pd.DataFrame(columns=["Job Title", "Role", "Salary Range", "skills"])
 
-    # ── Load career-path data ────────────────────────────────────────────────
+
     if _CAREER_PATH_CSV.exists():
         career_path_df = pd.read_csv(_CAREER_PATH_CSV)
         career_path_df.columns = [c.strip() for c in career_path_df.columns]
@@ -342,7 +337,6 @@ def seed(*, sample_size: int = 200_000, min_similarity: float = 0.15) -> None:
         print(f"   ⚠  Career-path dataset not found at {_CAREER_PATH_CSV}")
         career_path_df = pd.DataFrame()
 
-    # ── Auto-map career-path fields via SBERT ────────────────────────────────
     if not career_path_df.empty:
         unique_fields = career_path_df["Field"].str.strip().unique().tolist()
         print(f"\n🔄  Auto-mapping {len(unique_fields)} career-path fields via SBERT …")
@@ -350,7 +344,6 @@ def seed(*, sample_size: int = 200_000, min_similarity: float = 0.15) -> None:
     else:
         field_mapping = {}
 
-    # ── Classify each job via SBERT similarity ───────────────────────────────
     print("\n🔄  Classifying jobs into career fields via SBERT …")
     if len(jobs_df) > 0:
         jobs_df["career_field"] = _classify_jobs_sbert(
@@ -366,14 +359,12 @@ def seed(*, sample_size: int = 200_000, min_similarity: float = 0.15) -> None:
     total_classified = len(classified)
     print(f"\n   Total classified: {total_classified:,} / {len(jobs_df):,} jobs")
 
-    # ── Aggregate per career field ───────────────────────────────────────────
     print("\n🔄  Computing salary, skills, growth per field …")
     delete_all_careers()
 
     for field_id in CAREER_DESCRIPTIONS:
         field_jobs = classified[classified["career_field"] == field_id]
 
-        # Salary aggregation
         salaries = field_jobs["Salary Range"].apply(lambda s: _parse_salary(s))
         lo_vals = [s[0] for s in salaries if s[0] is not None]
         hi_vals = [s[1] for s in salaries if s[1] is not None]
@@ -387,13 +378,10 @@ def seed(*, sample_size: int = 200_000, min_similarity: float = 0.15) -> None:
             median_hi = None
             salary_display = "Data not available"
 
-        # Skills extraction
         skills = _extract_skills(field_jobs["skills"], top_n=15) if len(field_jobs) > 0 else []
 
-        # Growth
         growth_rate, growth_desc = _compute_growth(len(field_jobs), total_classified)
 
-        # Pathway (uses SBERT-derived field_mapping)
         pathway = _build_pathway(career_path_df, field_id, field_mapping)
 
         career_doc = {
@@ -418,8 +406,6 @@ def seed(*, sample_size: int = 200_000, min_similarity: float = 0.15) -> None:
 
     print("\n✅  Seed complete — all career metadata stored in MongoDB.")
 
-
-# ── CLI entry point ─────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     seed()

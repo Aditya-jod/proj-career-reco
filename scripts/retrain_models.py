@@ -55,9 +55,6 @@ from src.models.sbert_career_classifier import SBERTCareerClassifier
 from src.models.university_ranker import UniversityRankerTrainer
 from src.models.university_recommender import UniversityDatasetBuilder
 
-# ---------------------------------------------------------------------------
-# Text builder helpers
-# ---------------------------------------------------------------------------
 _SCORE_COLS = [
     "Mathematics_Score", "Science_Score", "Language_Arts_Score",
     "Social_Studies_Score",
@@ -203,10 +200,6 @@ def _build_skills_text(row: pd.Series, label: str = "", rng: np.random.RandomSta
     return ", ".join(parts)
 
 
-# ---------------------------------------------------------------------------
-# Evaluation helpers
-# ---------------------------------------------------------------------------
-
 def _evaluate(
     y_true: List[str],
     y_pred: List[str],
@@ -234,10 +227,6 @@ def _sbert_predict_all(clf: SBERTCareerClassifier, texts: List[str]) -> List[str
     return preds
 
 
-# ---------------------------------------------------------------------------
-# Report generation
-# ---------------------------------------------------------------------------
-
 def _generate_report(
     results: List[Tuple[str, Dict[str, float], List[str], List[str]]],
     class_labels: List[str],
@@ -259,7 +248,7 @@ def _generate_report(
     lines.append(f"**Classes:** {len(class_labels)}")
     lines.append("")
 
-    # ── Ablation study table ─────────────────────────────────────────────
+    # Ablation study table
     lines.append("## 1. Ablation Study")
     lines.append("")
     lines.append("| Model | Accuracy | Precision | Recall | F1 Score |")
@@ -274,7 +263,6 @@ def _generate_report(
         )
     lines.append("")
 
-    # ── Key takeaway ─────────────────────────────────────────────────────
     best = max(results, key=lambda r: r[1]["accuracy"])
     worst = min(results, key=lambda r: r[1]["accuracy"])
     improvement = (best[1]["accuracy"] - worst[1]["accuracy"]) * 100
@@ -288,7 +276,7 @@ def _generate_report(
     )
     lines.append("")
 
-    # ── Per-model detailed metrics ───────────────────────────────────────
+
     for idx, (name, metrics, y_true, y_pred) in enumerate(results, start=2):
         lines.append(f"## {idx}. {name} — Detailed Metrics")
         lines.append("")
@@ -323,10 +311,6 @@ def _generate_report(
     output_path.write_text(report_text, encoding="utf-8")
     logger.info("Evaluation report saved to %s", output_path)
 
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
 def main() -> None:
     os.makedirs("models", exist_ok=True)
@@ -383,7 +367,7 @@ def main() -> None:
 
     evaluation_results: List[Tuple[str, Dict[str, float], List[str], List[str]]] = []
 
-    # ── 2. SBERT + Logistic Regression (primary model) ───────────────────
+
     logger.info("[2/5] Training SBERT + Logistic Regression (primary model)…")
     encoder = FeatureBuilder()
     sbert_clf = SBERTCareerClassifier(encoder=encoder)
@@ -397,7 +381,7 @@ def main() -> None:
         ("SBERT + Logistic Regression", sbert_metrics, test_labels, sbert_preds)
     )
 
-    # ── 3. TF-IDF + Logistic Regression (text baseline) ─────────────────
+
     logger.info("[3/5] Training TF-IDF + Logistic Regression (text baseline)…")
     tfidf = TfidfVectorizer(max_features=5000)
     X_tfidf_train = tfidf.fit_transform(train_texts)
@@ -418,7 +402,7 @@ def main() -> None:
         ("TF-IDF + Logistic Regression", tfidf_metrics, test_labels, tfidf_preds)
     )
 
-    # ── 4. Numeric-only Random Forest (numeric baseline) ─────────────────
+
     logger.info("[4/5] Training Numeric-only Random Forest (numeric baseline)…")
     le_rf = LabelEncoder()
     y_rf_train = le_rf.fit_transform(y_num_train)
@@ -435,7 +419,7 @@ def main() -> None:
         ("Numeric-only Random Forest", rf_metrics, y_num_test, rf_preds)
     )
 
-    # ── 5. Generate evaluation report ────────────────────────────────────
+
     logger.info("[5/5] Generating evaluation report…")
 
     # Print ablation summary to console
@@ -471,7 +455,7 @@ def main() -> None:
         },
     )
 
-    # ── 6. University Ranker ─────────────────────────────────────────────
+
     logger.info("Training University Ranker…")
     builder = UniversityDatasetBuilder(
         data["indian_colleges"], data["world_universities"]
