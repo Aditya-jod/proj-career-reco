@@ -4,14 +4,12 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-# ── Ensure NLTK data is present ───────────────────────────────────────────────
 for _corpus in ("corpora/stopwords", "corpora/wordnet"):
     try:
         nltk.data.find(_corpus)
     except LookupError:
         nltk.download(_corpus.split("/")[1], quiet=True)
 
-# ── Module-level singletons (SRP: initialised once, reused on every call) ─────
 # Creating these inside clean_text() would rebuild them for every single row,
 # which is catastrophic at 1.6 M job description rows.
 _STOP_WORDS: frozenset = frozenset(stopwords.words("english"))

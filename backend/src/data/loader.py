@@ -52,17 +52,14 @@ def load_raw_data(config):
     try:
         logger.info("Loading datasets...")
         
-        # 1. Career Path Data
         datasets['career_path'] = pd.read_csv(_resolve_path(datasets_config['career_path']), skipinitialspace=True)
         datasets['career_path'].columns = datasets['career_path'].columns.str.strip()
         logger.info("Loaded Career Path Data: %s", datasets['career_path'].shape)
 
-        # 2. Student/Recommendation Data
         datasets['student_reco'] = pd.read_csv(_resolve_path(datasets_config['student_reco']), skipinitialspace=True)
         datasets['student_reco'].columns = datasets['student_reco'].columns.str.strip()
         logger.info("Loaded Student Reco Data: %s", datasets['student_reco'].shape)
 
-        # Load the second student dataset
         try:
             datasets['student_reco_2'] = pd.read_csv(_resolve_path(datasets_config['student_reco_2']), skipinitialspace=True)
             datasets['student_reco_2'].columns = datasets['student_reco_2'].columns.str.strip()
@@ -71,11 +68,9 @@ def load_raw_data(config):
             logger.warning("Could not load student_reco_2: %s", e)
             datasets['student_reco_2'] = None
 
-        # 3. Job Descriptions
         datasets['job_descriptions'] = pd.read_csv(_resolve_path(datasets_config['job_descriptions']), skipinitialspace=True)
         logger.info("Loaded Job Descriptions: %s", datasets['job_descriptions'].shape)
 
-        # 4. Colleges & Universities Data
         datasets['indian_colleges'] = pd.read_csv(_resolve_path(datasets_config['indian_colleges']), skipinitialspace=True)
         datasets['world_universities'] = pd.read_csv(_resolve_path(datasets_config['world_universities']), skipinitialspace=True)
         
