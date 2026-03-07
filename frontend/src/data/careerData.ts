@@ -3,7 +3,6 @@
  * Connects frontend forms to backend ML models via FastAPI
  */
 
-// API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 /**
@@ -13,8 +12,6 @@ function authHeaders(): Record<string, string> {
   const token = localStorage.getItem("authToken");
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
-
-// ==================== Type Definitions ====================
 
 export interface CareerPath {
   title: string;
@@ -186,8 +183,6 @@ export const SUGGESTIONS: SuggestionsData = {
   ],
 };
 
-// ==================== API Functions ====================
-
 /**
  * Health check - verify backend is running
  */
@@ -230,7 +225,6 @@ export async function getRecommendations(
       .filter(Boolean)
       .join(", ");
 
-    // Build the student profile for API
     const profile: StudentProfile = {
       mathematics_score: scores.mathematics,
       science_score: scores.science,
@@ -264,8 +258,6 @@ export async function getRecommendations(
     }
 
     const result: RecommendationResult = await response.json();
-
-    // Transform backend response into CareerPath format for frontend
     return transformToCareerPaths(result);
   } catch (error) {
     console.error("Recommendation request failed:", error);
@@ -273,7 +265,6 @@ export async function getRecommendations(
   }
 }
 
-// Auth API
 export async function loginUser(email: string, password: string): Promise<{ token: string; userId: string; name: string }> {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
@@ -310,7 +301,6 @@ function transformToCareerPaths(result: RecommendationResult): RecommendationRes
   const meta = result.career_metadata;
   const altMetas = result.alternatives_metadata ?? [];
 
-  // Create a CareerPath for the primary career
   const primaryCareer: CareerPath = {
     title: meta?.title ?? career.career_field,
     field: career.career_field,
@@ -324,7 +314,6 @@ function transformToCareerPaths(result: RecommendationResult): RecommendationRes
       : [{ stage: "Getting Started", detail: `Explore opportunities in ${career.career_field}.` }],
   };
 
-  // Create CareerPath entries for alternative careers using API metadata
   const alternativesCareers: CareerPath[] = career.alternatives.map(
     ([field, confidence], index) => {
       const altMeta = altMetas[index];
