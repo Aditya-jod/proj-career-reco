@@ -25,7 +25,6 @@ const CareerResults = ({ careers, universities, jobs, onReset }: CareerResultsPr
   return (
     <section className="py-20 px-4">
       <div className="max-w-3xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-12">
           <span className="chip-accent mb-3 inline-block">✨ Your Results</span>
           <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-3">
@@ -36,7 +35,6 @@ const CareerResults = ({ careers, universities, jobs, onReset }: CareerResultsPr
           </p>
         </div>
 
-        {/* ── Career Cards ── */}
         <div className="space-y-4 mb-16">
           {careers.map((career, idx) => {
             const isOpen = expanded === career.title;
@@ -46,7 +44,6 @@ const CareerResults = ({ careers, universities, jobs, onReset }: CareerResultsPr
                 className="glass-card overflow-hidden animate-fade-up"
                 style={{ animationDelay: `${idx * 0.1}s` }}
               >
-                {/* Header */}
                 <button
                   onClick={() => setExpanded(isOpen ? null : career.title)}
                   className="w-full flex items-center justify-between p-6 text-left"
@@ -80,12 +77,10 @@ const CareerResults = ({ careers, universities, jobs, onReset }: CareerResultsPr
                   </div>
                 </button>
 
-                {/* Expanded Content */}
                 {isOpen && (
                   <div className="px-6 pb-6 border-t border-border/50">
                     <p className="text-muted-foreground mt-4 mb-6">{career.description}</p>
 
-                    {/* Stats */}
                     <div className="flex flex-wrap gap-4 mb-6">
                       <div className="flex items-center gap-2 text-sm">
                         <DollarSign className="w-4 h-4 text-accent" />
@@ -97,7 +92,6 @@ const CareerResults = ({ careers, universities, jobs, onReset }: CareerResultsPr
                       </div>
                     </div>
 
-                    {/* Skills */}
                     {career.skills.length > 0 && (
                       <div className="mb-6">
                         <p className="text-sm font-medium text-foreground mb-2">Key Skills</p>
@@ -109,7 +103,6 @@ const CareerResults = ({ careers, universities, jobs, onReset }: CareerResultsPr
                       </div>
                     )}
 
-                    {/* Pathway */}
                     <div>
                       <p className="text-sm font-medium text-foreground mb-3">Career Pathway</p>
                       <div className="space-y-0">
@@ -136,7 +129,6 @@ const CareerResults = ({ careers, universities, jobs, onReset }: CareerResultsPr
           })}
         </div>
 
-        {/* ── University Recommendations ── */}
         {universities.length > 0 && (
           <div className="mb-16">
             <div className="flex items-center gap-3 mb-6">
@@ -187,7 +179,6 @@ const CareerResults = ({ careers, universities, jobs, onReset }: CareerResultsPr
                     )}
                   </div>
 
-                  {/* Score bar */}
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-muted-foreground">Match score</span>
@@ -208,7 +199,6 @@ const CareerResults = ({ careers, universities, jobs, onReset }: CareerResultsPr
           </div>
         )}
 
-        {/* ── Job Recommendations ── */}
         {jobs.length > 0 && (
           <div className="mb-16">
             <div className="flex items-center gap-3 mb-6">
@@ -257,7 +247,6 @@ const CareerResults = ({ careers, universities, jobs, onReset }: CareerResultsPr
           </div>
         )}
 
-        {/* Reset */}
         <div className="text-center mt-4">
           <button
             onClick={onReset}

@@ -2,8 +2,6 @@ import { useState, useRef, KeyboardEvent } from "react";
 import { ChevronRight, ChevronLeft, Sparkles, MapPin, X } from "lucide-react";
 import { SUGGESTIONS, type SuggestionsData } from "@/data/careerData";
 
-// Suggestion lists are hardcoded in careerData.ts — no DB dependency.
-
 interface ScoreFields {
   mathematics: number;
   science: number;
@@ -26,9 +24,6 @@ interface AssessmentFormProps {
     preferredLocation: string;
   }) => void;
 }
-
-// academicStreams come from hardcoded SUGGESTIONS constant
-// (no API call needed)
 
 const defaultScores: ScoreFields = {
   mathematics: 70,
@@ -54,7 +49,7 @@ const scoreLabels: { key: keyof ScoreFields; label: string; emoji: string }[] = 
   { key: "social_skills", label: "Social Skills", emoji: "🤝" },
 ];
 
-// ── TagInput ─────────────────────────────────────────────────────────────────
+
 interface TagInputProps {
   tags: string[];
   suggestions: string[];
@@ -90,7 +85,6 @@ const TagInput = ({ tags, suggestions, placeholder, color, onAdd, onRemove }: Ta
 
   return (
     <div className="space-y-3">
-      {/* Tag chips + text input */}
       <div
         className="flex flex-wrap gap-2 p-3 rounded-xl border border-border bg-background cursor-text min-h-[52px]"
         onClick={() => inputRef.current?.focus()}
@@ -114,7 +108,6 @@ const TagInput = ({ tags, suggestions, placeholder, color, onAdd, onRemove }: Ta
         />
       </div>
       <p className="text-xs text-muted-foreground">Type anything and press Enter (or comma to separate multiple). Or click a suggestion:</p>
-      {/* Quick-pick suggestions */}
       <div className="flex flex-wrap gap-2">
         {filtered.map((s) => (
           <button
@@ -131,7 +124,7 @@ const TagInput = ({ tags, suggestions, placeholder, color, onAdd, onRemove }: Ta
   );
 };
 
-// ── AssessmentForm ────────────────────────────────────────────────────────────
+
 const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
   const [step, setStep] = useState(0);
   const [academics, setAcademics] = useState("");
@@ -141,7 +134,7 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
   const [scores, setScores] = useState<ScoreFields>(defaultScores);
   const [preferredLocation, setPreferredLocation] = useState("");
 
-  // ── Hardcoded suggestions ────────────────
+
   const suggestions: SuggestionsData = SUGGESTIONS;
 
   const setScore = (key: keyof ScoreFields, value: number) => {
@@ -292,7 +285,6 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
           ))}
         </div>
 
-        {/* Step card */}
         <div className="glass-card p-8">
           <p className="text-sm font-medium text-muted-foreground mb-1">
             Step {step + 1} of {steps.length}
@@ -304,7 +296,6 @@ const AssessmentForm = ({ onSubmit }: AssessmentFormProps) => {
 
           {currentStep.content}
 
-          {/* Navigation */}
           <div className="flex justify-between mt-8">
             <button
               onClick={() => setStep(Math.max(0, step - 1))}
