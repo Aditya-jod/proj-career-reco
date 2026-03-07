@@ -14,7 +14,6 @@ from src.models.university_recommender import UniversityRecommender
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# USER INPUT HANDLERS
 def collect_user_profile() -> dict:
     """
     Collect user academic scores and interests.
@@ -69,7 +68,6 @@ def collect_user_profile() -> dict:
     return profile
 
 
-# SYSTEM INITIALIZATION
 def initialize_systems(datasets):
     """
     Initialize ML models and recommenders.
@@ -124,7 +122,6 @@ def initialize_systems(datasets):
 
     return career_predictor, university_recommender, job_recommender, job_df
 
-# PIPELINE
 def run_pipeline():
     config = load_config()
     datasets = load_raw_data(config)
@@ -138,7 +135,7 @@ def run_pipeline():
     while True:
         profile = collect_user_profile()
 
-        # ---------------- Career Prediction ----------------
+        # Career Prediction
         predictions = career_predictor.predict_top_k(
             profile, k=3, skills_text=profile.get("skills_text", "")
         )
@@ -146,13 +143,13 @@ def run_pipeline():
 
         print(f"\n🔮 Predicted Career Field: {top_career} ({confidence:.2%})")
 
-        # ---------------- Job Recommendations ----------------
+        # Job Recommendations
         query = profile["skills_text"] or top_career
         query = clean_text(query)
 
         jobs = job_recommender.recommend(query, top_k=10)
 
-        # ---------------- University Recommendations ----------------
+        # University Recommendations
         universities = uni_recommender.recommend(
             query=top_career,
             country=profile["preferred_location"],

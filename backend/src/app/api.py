@@ -39,15 +39,8 @@ from src.db.career_repository import (
     get_career_metadata,
 )
 
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Rate-limiter middleware (simple sliding-window per-IP)
-# ---------------------------------------------------------------------------
 
 class _RateLimitState:
     """Thread-safe in-memory rate-limit store keyed by (ip, path)."""
@@ -60,7 +53,6 @@ class _RateLimitState:
     def is_allowed(self, key: str) -> bool:
         now = time.time()
         hits = self._hits[key]
-        # Remove expired timestamps
         self._hits[key] = [t for t in hits if now - t < self.window]
         if len(self._hits[key]) >= self.max_calls:
             return False
@@ -85,18 +77,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-# ---------------------------------------------------------------------------
-# CORS
-# ---------------------------------------------------------------------------
 _raw_origins = os.getenv(
     "ALLOWED_ORIGINS",
     "http://localhost:5173,http://localhost:8080,http://localhost:3000",
 )
 ALLOWED_ORIGINS: List[str] = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
-# ---------------------------------------------------------------------------
-# Global model state — assigned during startup lifespan, used by route handlers.
-# ---------------------------------------------------------------------------
 career_predictor: Optional[CareerService] = None
 university_recommender: Optional[UniversityRecommender] = None
 job_recommender: Optional[CareerRecommender] = None
@@ -114,26 +100,20 @@ async def lifespan(application: FastAPI):
         import numpy as np
         import pandas as pd
 
-        # ── Load config & datasets ──────────────────────────────────────────
         config = load_config()
         datasets = load_raw_data(config)
         if datasets is None:
             raise RuntimeError("Failed to load datasets — check config.yaml paths.")
 
-        # ── Shared Sentence-BERT encoder (university, job, and SBERT career classifier)
-        # Loaded once; the same model instance is reused across all components.
         logger.info("Loading Sentence-BERT encoder…")
         feature_builder = FeatureBuilder()
 
-        # ── Supervised SBERT Career Classifier (load trained classifier) ────
         logger.info("Loading supervised SBERT career classifier…")
         sbert_clf = SBERTCareerClassifier(encoder=feature_builder)
-        sbert_clf.load()   # loads trained LogisticRegression from disk
+        sbert_clf.load()
 
-        # ── CareerService wraps the classifier ──────────────────────────────
         career_predictor = CareerService(classifier=sbert_clf)
 
-        # ── University Recommender ──────────────────────────────────────────
         logger.info("Loading University Recommender…")
         university_recommender = UniversityRecommender(
             feature_builder=feature_builder,
@@ -143,7 +123,6 @@ async def lifespan(application: FastAPI):
             train_ranker=True,
         )
 
-        # ── Job Recommender ─────────────────────────────────────────────────
         logger.info("Loading Job Recommender…")
         cache_dir = Path("models/cache")
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -186,16 +165,12 @@ async def lifespan(application: FastAPI):
         logger.error("Startup failed: %s", exc, exc_info=True)
         raise
 
-    yield  # ── application runs ────────────────────────────────────────────
+    yield
 
-    # ── Shutdown ─────────────────────────────────────────────────────────────
     logger.info("Shutting down — closing MongoDB connection…")
     close_db()
 
 
-# ---------------------------------------------------------------------------
-# FastAPI application
-# ---------------------------------------------------------------------------
 app = FastAPI(
     title="Career Path Recommender API",
     description="AI-powered career guidance system",
@@ -213,7 +188,6 @@ app.add_middleware(
 )
 
 
-# ==================== Request/Response Models ====================
 
 class StudentProfileRequest(BaseModel):
     """Request model for student profile assessment."""
@@ -317,7 +291,6 @@ class EnrichedRecommendationResponse(BaseModel):
     alternatives_metadata: List[AlternativeMetadata] = []
 
 
-# ── Auth Models ───────────────────────────────────────────────────────────────
 
 class RegisterRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
@@ -364,7 +337,6 @@ async def get_recommendations(
         raise HTTPException(status_code=503, detail="Models not initialized")
     
     try:
-        # Convert request to dict format expected by models
         user_profile = {
             "Mathematics_Score": profile.mathematics_score,
             "Science_Score": profile.science_score,
@@ -378,7 +350,6 @@ async def get_recommendations(
             "skills_text": profile.skills_text,
         }
         
-        # ==================== Career Prediction ====================
         assert career_predictor is not None, "Models not loaded"
         assert university_recommender is not None, "Models not loaded"
         assert job_recommender is not None, "Models not loaded"
@@ -395,7 +366,6 @@ async def get_recommendations(
             alternatives=alternatives,
         )
         
-        # ==================== University Recommendations ====================
         query = profile.skills_text or top_career
         query = clean_text(query)
         
@@ -425,7 +395,6 @@ async def get_recommendations(
             total=len(universities_list)
         )
         
-        # ==================== Job Recommendations ====================
         # Build a rich natural-language query for Sentence-BERT.
         # Do NOT apply clean_text() here — NLTK stopword-stripping hurts SBERT.
         # Combine skills_text with the predicted career so the semantic search
@@ -456,7 +425,6 @@ async def get_recommendations(
             total=len(jobs_list)
         )
 
-        # ==================== Career Metadata from MongoDB ====================
         primary_meta = get_career_metadata(top_career)
         meta_detail = None
         if primary_meta:
@@ -633,7 +601,6 @@ async def health_check():
     return {"status": "healthy", "models_ready": True}
 
 
-# ── Auth Endpoints ────────────────────────────────────────────────────────────
 
 @app.post("/auth/register", response_model=AuthResponse, tags=["auth"])
 async def register(body: RegisterRequest):
@@ -664,7 +631,6 @@ async def login(body: LoginRequest):
         raise HTTPException(status_code=500, detail="Login failed")
 
 
-# ── Career Metadata Endpoints ────────────────────────────────────────────────
 
 @app.get("/api/careers", response_model=List[CareerMetadataDetail], tags=["careers"])
 async def list_careers():
