@@ -25,9 +25,6 @@ from pymongo.database import Database
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Module-level singleton — one client per process, connection pool reused.
-# ---------------------------------------------------------------------------
 _client: Optional[MongoClient] = None
 
 
@@ -56,9 +53,6 @@ def close_db() -> None:
         logger.info("MongoDB client closed.")
 
 
-# ---------------------------------------------------------------------------
-# Backwards-compat shim so existing code that imports get_database still works
-# ---------------------------------------------------------------------------
 def get_database(name: Optional[str] = None) -> Database:
     """Deprecated: use get_db() instead."""
     return get_db(name)

@@ -15,7 +15,6 @@ from src.db.mongo import get_db
 _COLLECTION = "careers"
 
 
-# ── helpers ──────────────────────────────────────────────────────────────────
 
 def _col():
     """Return the ``careers`` collection handle."""
@@ -28,8 +27,6 @@ def _ensure_indexes() -> None:
     col.create_index("career_id", unique=True)
     col.create_index("title")
 
-
-# ── CRUD ─────────────────────────────────────────────────────────────────────
 
 def upsert_career(career: Dict[str, Any]) -> None:
     """Insert or replace a career document keyed on ``career_id``."""
