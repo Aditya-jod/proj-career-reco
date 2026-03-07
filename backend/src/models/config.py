@@ -19,14 +19,8 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Project root anchor — resolves correctly regardless of CWD
-# ---------------------------------------------------------------------------
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]  # …/proj-career-reco
 
-# ---------------------------------------------------------------------------
-# Load config.yaml (once, at import time)
-# ---------------------------------------------------------------------------
 _cfg: Optional[Dict[str, Any]] = None
 
 try:
@@ -47,16 +41,14 @@ _model_cfg: Dict[str, Any] = (_cfg or {}).get("model", {})
 _rf_cfg: Dict[str, Any] = _model_cfg.get("random_forest", {})
 
 # ---------------------------------------------------------------------------
-# Model storage paths (resolved from project root)
+# Model storage paths
 # ---------------------------------------------------------------------------
 MODEL_PATH = str(_PROJECT_ROOT / "models" / "career_predictor.pkl")
 SBERT_CLASSIFIER_PATH = str(_PROJECT_ROOT / "models" / "sbert_career_classifier.pkl")
 
-# ---------------------------------------------------------------------------
-# Rich career field descriptions used by SBERTCareerClassifier to build
-# per-class embeddings at startup.  Written as natural-language paragraphs
-# so the sentence-transformer produces maximally discriminative vectors.
-# ---------------------------------------------------------------------------
+# Rich career field descriptions used by SBERTCareerClassifier.
+# Written as natural-language paragraphs so the sentence-transformer
+# produces maximally discriminative vectors.
 CAREER_DESCRIPTIONS: Dict[str, str] = {
     "Healthcare": (
         "Medicine, healthcare, and life sciences. Careers include doctor, physician, "
@@ -134,7 +126,6 @@ CAREER_TITLES: Dict[str, str] = {
     "Trades_Manufacturing": "Trades & Manufacturing",
 }
 
-# Feature columns required for prediction (from config.yaml → datasets.feature_columns)
 FEATURE_COLUMNS: List[str] = _datasets_cfg.get("feature_columns", [
     "Mathematics_Score",
     "Science_Score",
@@ -147,18 +138,15 @@ FEATURE_COLUMNS: List[str] = _datasets_cfg.get("feature_columns", [
     "Social_Skills",
 ])
 
-# Target column in training data (from config.yaml → datasets.target_column)
 TARGET_COLUMN: str = _datasets_cfg.get(
     "target_column", "Primary_Career_Recommendation"
 )
 
-# Random Forest hyperparameters (from config.yaml → model.random_forest)
 RF_N_ESTIMATORS: int = _rf_cfg.get("n_estimators", 300)
 RF_RANDOM_STATE: int = _rf_cfg.get("random_state", 42)
 RF_MAX_DEPTH: Optional[int] = _rf_cfg.get("max_depth", None)
 RF_MIN_SAMPLES_SPLIT: int = _rf_cfg.get("min_samples_split", 5)
 RF_CLASS_WEIGHT: str = _rf_cfg.get("class_weight", "balanced")  # type: ignore[assignment]  # always "balanced" or "balanced_subsample"
 
-# Train-test split ratio (from config.yaml → model.test_size / train_random_state)
 TEST_SIZE: float = _model_cfg.get("test_size", 0.2)
 TRAIN_RANDOM_STATE: int = _model_cfg.get("train_random_state", 42)

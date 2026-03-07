@@ -14,7 +14,6 @@ from src.models.country_utils import country_matches
 
 logger = logging.getLogger(__name__)
 
-# Default local storage for the trained ranker
 DEFAULT_MODEL_PATH = Path("models/university_ranker.pkl")
 
 
@@ -103,9 +102,6 @@ class UniversityFeatureEngineer:
         country_match = country_matches(context.preferred_country, country)
         state_match = self._matches(context.preferred_state, state)
 
-        # ── Quality signals ──────────────────────────────────────────────
-        # Specialisation — a college with a declared specialisation in the
-        # area of interest is worth far more than one with "No" specialism.
         specialisation_raw = str(university_row.get("Specialised in", "")).strip()
         has_real_specialisation = (
             1.0 if specialisation_raw and specialisation_raw.lower() not in ("no", "nan", "none", "")

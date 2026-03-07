@@ -49,10 +49,6 @@ class SBERTCareerClassifier:
         self._clf: LogisticRegression | None = None
         self._label_encoder: LabelEncoder | None = None
 
-    # ------------------------------------------------------------------
-    # Persistence
-    # ------------------------------------------------------------------
-
     def load(self) -> None:
         """Load a trained LogisticRegression classifier from disk.
 
@@ -85,10 +81,6 @@ class SBERTCareerClassifier:
             self._model_path,
         )
         logger.info("SBERT classifier saved to %s", self._model_path)
-
-    # ------------------------------------------------------------------
-    # Training
-    # ------------------------------------------------------------------
 
     def train(
         self,
@@ -134,10 +126,6 @@ class SBERTCareerClassifier:
         )
         self._clf.fit(X, y)
         logger.info("Classifier training complete.")
-
-    # ------------------------------------------------------------------
-    # Inference
-    # ------------------------------------------------------------------
 
     def predict_proba(self, text: str) -> Tuple[np.ndarray, List[str]]:
         """Return (probability_array, label_list).

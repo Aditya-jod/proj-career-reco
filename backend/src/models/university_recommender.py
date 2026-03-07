@@ -33,7 +33,6 @@ class UniversityDatasetBuilder:
             indian = self.indian_df.copy()
             world = self.world_df.copy()
 
-            # Strip "(Id: C-xxxxx)" suffixes from college names for cleaner display
             indian["College Name"] = (
                 indian["College Name"]
                 .fillna("")
@@ -56,7 +55,6 @@ class UniversityDatasetBuilder:
             )
             indian["country"] = "India"
 
-            # Carry quality columns through for the ranker
             indian_clean = indian[
                 [
                     "search_text",
@@ -78,7 +76,6 @@ class UniversityDatasetBuilder:
 
             unified = pd.concat([indian_clean, world_clean], ignore_index=True)
             unified["Website"] = unified["Website"].astype(str)
-            # Fill NaN quality columns for world universities with defaults
             for col in ["Specialised in", "College Type", "University Type"]:
                 if col not in unified.columns:
                     unified[col] = ""
@@ -178,13 +175,11 @@ class UniversityRecommender:
                 preferred_state=state,
             )
 
-            # Get ML scores for all candidates
             feature_df = self.ranker.matrix_builder.build(candidate_df, context)
             feature_df = feature_df[self.ranker.feature_columns]
             assert self.ranker.model is not None  # guaranteed by is_ready()
             ml_scores = self.ranker.model.predict(feature_df)
 
-            # Get BERT cosine similarity scores for the same candidates
             full_query = " ".join(part for part in [query, skills_text] if part)
             query_vec = self.feature_builder.encode(full_query)
             candidate_embeddings = self.embedding_matrix[candidate_df.index]
@@ -197,7 +192,6 @@ class UniversityRecommender:
 
             combined = 0.65 * _norm(ml_scores) + 0.35 * _norm(cos_scores)
 
-            # ── Post-hoc quality adjustment ──────────────────────────────
             # The ML model can't fully separate elite vs. obscure colleges
             # when the training signal is a heuristic.  Apply direct
             # multipliers so that IITs / NITs / IIITs are never buried
@@ -211,7 +205,6 @@ class UniversityRecommender:
                 if _COACHING_PATTERNS.search(nm):
                     quality_mult[i] = 0.40
             combined = combined * quality_mult
-            # Re-normalise so scores stay in [0, 1]
             combined = _norm(combined)
 
             ranked = candidate_df.copy()
