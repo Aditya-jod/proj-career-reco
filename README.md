@@ -211,12 +211,12 @@ User Text Input
 │     React 18 + TypeScript + Tailwind + shadcn/ui       │
 │     (http://localhost:8080)                            │
 │                                                        │
-│  ┌────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │  Home Page  │  │  Assessment  │  │  Results     │  │
-│  │  (Hero,     │  │  Form        │  │  Dashboard   │  │
-│  │   Stats,    │  │  (Scores +   │  │  (Career,    │  │
-│  │   CTA)      │  │   Text)      │  │   Unis, Jobs)│  │
-│  └────────────┘  └──────────────┘  └──────────────┘  │
+│  ┌────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │  Home Page │  │  Assessment  │  │  Results     │    │
+│  │  (Hero,    │  │  Form        │  │  Dashboard   │    │
+│  │   Stats,   │  │  (Scores +   │  │  (Career,    │    │
+│  │   CTA)     │  │   Text)      │  │   Unis, Jobs)│    │
+│  └────────────┘  └──────────────┘  └──────────────┘    │
 │                                                        │
 │  Auth: JWT token stored in React Context               │
 └───────────────────────┬────────────────────────────────┘
@@ -224,27 +224,27 @@ User Text Input
                         │ Authorization: Bearer <JWT>
                         ▼
 ┌────────────────────────────────────────────────────────┐
-│                    BACKEND (FastAPI)                    │
+│                    BACKEND (FastAPI)                   │
 │     (http://localhost:8000)                            │
 │                                                        │
-│  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐ │
-│  │  Auth Layer  │  │  Rate Limiter│  │  CORS        │ │
-│  │  (JWT+bcrypt)│  │  (10/min/IP) │  │  Middleware   │ │
-│  └──────┬──────┘  └──────────────┘  └──────────────┘ │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐   │
+│  │  Auth Layer │  │  Rate Limiter│  │  CORS        │   │
+│  │ (JWT+bcrypt)│  │  (10/min/IP) │  │  Middleware  │   │
+│  └──────┬──────┘  └──────────────┘  └──────────────┘   │
 │         ▼                                              │
-│  ┌─────────────────────────────────────────────────┐  │
-│  │              CareerService (Orchestrator)         │  │
-│  │  Delegates to SBERTCareerClassifier               │  │
-│  └────────┬──────────────┬──────────────┬──────────┘  │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │              CareerService (Orchestrator)       │   │
+│  │  Delegates to SBERTCareerClassifier             │   │
+│  └────────┬──────────────┬──────────────┬──────────┘   │
 │           ▼              ▼              ▼              │
-│  ┌──────────────┐ ┌────────────┐ ┌──────────────┐    │
-│  │ SBERT Career │ │ University │ │ Job          │    │
-│  │ Classifier   │ │ Recommender│ │ Recommender  │    │
-│  │ (LR + SBERT) │ │ (RF + SBERT│ │ (Cosine Sim) │    │
-│  └──────────────┘ │  Ranker)   │ └──────────────┘    │
-│                    └────────────┘                      │
+│  ┌──────────────┐ ┌────────────┐ ┌──────────────┐      │
+│  │ SBERT Career │ │ University │ │ Job          │      │
+│  │ Classifier   │ │ Recommender│ │ Recommender  │      │
+│  │ (LR + SBERT) │ │ (RF + SBERT│ │ (Cosine Sim) │      │
+│  └──────────────┘ │  Ranker)   │ └──────────────┘      │
+│                   └────────────┘                       │
 │                                                        │
-│  Shared: FeatureBuilder (all-MiniLM-L6-v2, loaded 1x) │
+│  Shared: FeatureBuilder (all-MiniLM-L6-v2, loaded 1x)  │
 └───────────────────────┬────────────────────────────────┘
                         │
                         ▼
